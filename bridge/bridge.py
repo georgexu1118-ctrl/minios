@@ -132,6 +132,30 @@ def get_stock(symbol):
         return {"error": f"yfinance error for '{symbol}': {e}"}
 
 
+def get_web_search(query, max_results=5):
+    query = (query or "").strip()
+    if not query:
+        return {"error": "empty query"}
+    try:
+        try:
+            from ddgs import DDGS            # current package name
+        except ImportError:
+            from duckduckgo_search import DDGS  # older package name
+    except ImportError:
+        return {"error": "ddgs not installed (pip install -r bridge/requirements.txt)"}
+    try:
+        hits = DDGS().text(query, max_results=max_results) or []
+        results = [{"title": h.get("title"),
+                    "url": h.get("href"),
+                    "snippet": (h.get("body") or "")[:300]}
+                   for h in hits[:max_results]]
+        if not results:
+            return {"error": f"no web results for '{query}'"}
+        return {"query": query, "results": results}
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"web search failed: {e}"}
+
+
 STOCK_TOOL = {
     "type": "function",
     "function": {
@@ -151,12 +175,32 @@ STOCK_TOOL = {
     },
 }
 
+WEB_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "web_search",
+        "description": ("Search the live web (DuckDuckGo) for current events, "
+                        "recent facts, figures, or anything that may have "
+                        "changed after your training cutoff. Returns result "
+                        "titles, URLs and snippets."),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "the search query"},
+            },
+            "required": ["query"],
+        },
+    },
+}
+
 SYSTEM_PROMPT = (
-    "You are minios, a tiny hobby OS kernel that learned to talk. You can "
-    "answer questions about individual US stocks using live Yahoo Finance "
-    "data via the get_stock tool: call it with the ticker symbol whenever a "
-    "question is about a specific stock. Answer in at most 2-3 short "
-    "sentences, plain ASCII only, and include the key numbers."
+    "You are minios, a tiny hobby OS kernel that learned to talk. "
+    "Use the get_stock tool for questions about individual US stocks (live "
+    "Yahoo Finance data). Use the web_search tool whenever a question needs "
+    "current events, recent facts, or anything that may have changed after "
+    "your training cutoff -- search instead of guessing or saying you don't "
+    "know. Answer general knowledge from your own training. Reply in at most "
+    "2-3 short sentences, plain ASCII only, with the key facts or numbers."
 )
 
 
@@ -185,7 +229,7 @@ def ask_openai(key, question, model):
     ]
     try:
         for _ in range(4):  # allow a few tool-call rounds
-            resp = _chat(key, model, messages, tools=[STOCK_TOOL])
+            resp = _chat(key, model, messages, tools=[STOCK_TOOL, WEB_TOOL])
             msg = resp["choices"][0]["message"]
             calls = msg.get("tool_calls")
             if not calls:
@@ -199,6 +243,8 @@ def ask_openai(key, question, model):
                     args = {}
                 if name == "get_stock":
                     result = get_stock(args.get("symbol", ""))
+                elif name == "web_search":
+                    result = get_web_search(args.get("query", ""))
                 else:
                     result = {"error": f"unknown tool {name}"}
                 log(f"tool {name}({args}) ->",

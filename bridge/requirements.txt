@@ -1,3 +1,4 @@
 # Host-side bridge dependencies (install with: pip install -r bridge/requirements.txt)
 # OpenAI access uses only the Python standard library (urllib) -- no package needed.
 yfinance>=0.2.40
+ddgs>=9.0.0
