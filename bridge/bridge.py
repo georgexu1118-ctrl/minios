@@ -9,9 +9,13 @@ Data flow:
 The kernel echoes each question back as "?question"; that echo is what
 triggers the OpenAI call, so the kernel is genuinely in the round-trip.
 
-The API key is read from the OPENAI_API_KEY environment variable. Use
-bridge.ps1, which decrypts your DPAPI-protected key into that variable for
-the lifetime of the process only. Or pass --mock to skip OpenAI entirely.
+Live US-stock data: the model is given a `get_stock` tool backed by the
+yfinance library. When you ask about a ticker (AAPL, MSFT, TSLA, ...), the
+model calls the tool, the bridge fetches real Yahoo Finance data, and the
+model answers with live numbers.
+
+The API key is read from OPENAI_API_KEY (bridge.ps1 decrypts it from DPAPI).
+Pass --mock to skip OpenAI entirely.
 """
 import argparse
 import json
@@ -27,9 +31,10 @@ def log(*a):
     print("[bridge]", *a, file=sys.stderr, flush=True)
 
 
+# --------------------------------------------------------------------------- #
+# Serial link to QEMU's COM1 (exposed as a TCP server)
+# --------------------------------------------------------------------------- #
 class SerialLink:
-    """Line-oriented link to QEMU's COM1 exposed as a TCP server."""
-
     def __init__(self, host, port, connect_timeout=20, io_timeout=60):
         self.buf = b""
         deadline = time.time() + connect_timeout
@@ -69,31 +74,141 @@ def sanitize(text, limit=1000):
     return text[:limit]
 
 
-def ask_openai(key, question, model):
-    body = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content":
-                "You are minios, a tiny hobby OS kernel that just learned to "
-                "talk. Answer in at most two short sentences, plain ASCII only."},
-            {"role": "user", "content": question},
-        ],
-        "max_tokens": 200,
-        "temperature": 0.7,
-    }).encode("utf-8")
+# --------------------------------------------------------------------------- #
+# yfinance tool: live quote/stats for a single US-listed stock
+# --------------------------------------------------------------------------- #
+def get_stock(symbol):
+    symbol = (symbol or "").strip().upper()
+    if not symbol:
+        return {"error": "no symbol given"}
+    try:
+        import yfinance as yf
+    except ImportError:
+        return {"error": "yfinance not installed (pip install -r bridge/requirements.txt)"}
+
+    def fi_get(fi, name):
+        try:
+            return getattr(fi, name)
+        except Exception:
+            try:
+                return fi[name]
+            except Exception:
+                return None
+
+    try:
+        t = yf.Ticker(symbol)
+        fi = t.fast_info
+        last = fi_get(fi, "last_price")
+        prev = fi_get(fi, "previous_close")
+        data = {
+            "symbol": symbol,
+            "currency": fi_get(fi, "currency"),
+            "last_price": last,
+            "previous_close": prev,
+            "open": fi_get(fi, "open"),
+            "day_high": fi_get(fi, "day_high"),
+            "day_low": fi_get(fi, "day_low"),
+            "year_high": fi_get(fi, "year_high"),
+            "year_low": fi_get(fi, "year_low"),
+            "market_cap": fi_get(fi, "market_cap"),
+        }
+        if isinstance(last, (int, float)) and isinstance(prev, (int, float)) and prev:
+            data["change"] = round(last - prev, 4)
+            data["change_pct"] = round((last - prev) / prev * 100.0, 2)
+        # richer fields (slower / sometimes flaky) — best effort
+        try:
+            info = t.info or {}
+            for k in ("shortName", "longName", "trailingPE", "forwardPE",
+                      "dividendYield", "sector", "industry"):
+                if info.get(k) is not None:
+                    data[k] = info[k]
+        except Exception:
+            pass
+
+        if data.get("last_price") is None and "shortName" not in data:
+            return {"error": f"no data found for '{symbol}' (is it a valid US ticker?)"}
+        return data
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"yfinance error for '{symbol}': {e}"}
+
+
+STOCK_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "get_stock",
+        "description": ("Get live quote and key statistics for a single "
+                        "US-listed stock by ticker symbol (e.g. AAPL, MSFT, "
+                        "TSLA, NVDA). Returns price, daily change, 52-week "
+                        "range, market cap, P/E and more from Yahoo Finance."),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "symbol": {"type": "string",
+                           "description": "Ticker symbol, e.g. AAPL"}
+            },
+            "required": ["symbol"],
+        },
+    },
+}
+
+SYSTEM_PROMPT = (
+    "You are minios, a tiny hobby OS kernel that learned to talk. You can "
+    "answer questions about individual US stocks using live Yahoo Finance "
+    "data via the get_stock tool: call it with the ticker symbol whenever a "
+    "question is about a specific stock. Answer in at most 2-3 short "
+    "sentences, plain ASCII only, and include the key numbers."
+)
+
+
+# --------------------------------------------------------------------------- #
+# OpenAI chat with tool-calling
+# --------------------------------------------------------------------------- #
+def _chat(key, model, messages, tools=None):
+    payload = {"model": model, "messages": messages,
+               "temperature": 0.3, "max_tokens": 320}
+    if tools:
+        payload["tools"] = tools
     req = urllib.request.Request(
         "https://api.openai.com/v1/chat/completions",
-        data=body,
+        data=json.dumps(payload).encode("utf-8"),
         headers={"Authorization": "Bearer " + key,
                  "Content-Type": "application/json"},
         method="POST")
+    with urllib.request.urlopen(req, timeout=40) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def ask_openai(key, question, model):
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": question},
+    ]
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            data = json.loads(r.read().decode("utf-8"))
-        return data["choices"][0]["message"]["content"]
+        for _ in range(4):  # allow a few tool-call rounds
+            resp = _chat(key, model, messages, tools=[STOCK_TOOL])
+            msg = resp["choices"][0]["message"]
+            calls = msg.get("tool_calls")
+            if not calls:
+                return msg.get("content") or "[no answer]"
+            messages.append(msg)
+            for c in calls:
+                name = c["function"]["name"]
+                try:
+                    args = json.loads(c["function"].get("arguments") or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                if name == "get_stock":
+                    result = get_stock(args.get("symbol", ""))
+                else:
+                    result = {"error": f"unknown tool {name}"}
+                log(f"tool {name}({args}) ->",
+                    json.dumps(result, default=str)[:200])
+                messages.append({"role": "tool", "tool_call_id": c["id"],
+                                 "content": json.dumps(result, default=str)})
+        return msg.get("content") or "[stopped after tool rounds]"
     except urllib.error.HTTPError as e:
         return f"[openai http {e.code}: {e.read().decode('utf-8', 'replace')[:160]}]"
-    except Exception as e:  # noqa: BLE001 - surface anything to the screen
+    except Exception as e:  # noqa: BLE001
         return f"[bridge error: {e}]"
 
 
@@ -103,6 +218,9 @@ def reply_for(args, key, question):
     return sanitize(ask_openai(key, question, args.model))
 
 
+# --------------------------------------------------------------------------- #
+# protocol helpers
+# --------------------------------------------------------------------------- #
 def wait_for_ready(link):
     deadline = time.time() + 20
     while time.time() < deadline:
@@ -119,7 +237,7 @@ def wait_for_ready(link):
 def turn(link, args, key, question):
     """Seed the kernel, wait for its '?' echo, then answer it."""
     link.send(">" + question + "\n")
-    deadline = time.time() + 20
+    deadline = time.time() + 60
     while time.time() < deadline:
         ln = link.readline()
         if ln is None:
@@ -150,7 +268,7 @@ def main():
 
     link = SerialLink(args.host, args.port)
     log(f"connected to kernel at {args.host}:{args.port}"
-        + (" [MOCK]" if args.mock else f" [model={args.model}]"))
+        + (" [MOCK]" if args.mock else f" [model={args.model}, +yfinance]"))
     wait_for_ready(link)
 
     if args.once is not None:
@@ -159,10 +277,11 @@ def main():
         if ok:
             log("answered:", ans)
         print("ROUND-TRIP OK" if ok else "ROUND-TRIP FAILED")
-        time.sleep(0.5)  # let the kernel render before QEMU is killed
+        time.sleep(0.5)
         sys.exit(0 if ok else 1)
 
-    print("minios chat ready. Ask away (Ctrl-C to quit).\n")
+    print("minios chat ready. Ask anything -- incl. US stocks, e.g.")
+    print("  'what is AAPL trading at?'   'is TSLA up today?'   'MSFT vs NVDA market cap'\n")
     try:
         while True:
             try:

@@ -83,6 +83,25 @@ Then type a question. The reply appears in the QEMU window.
 > additionally blocks `*.dpapi`, `.env`, and similar files as defense in depth.
 > If you ever paste a key somewhere it could be logged, rotate it.
 
+### US stock questions (Yahoo Finance)
+
+The bridge can answer questions about individual US stocks using live data from
+[yfinance](https://github.com/ranaroussi/yfinance). The model is given a
+`get_stock` tool (OpenAI tool-calling); when you ask about a ticker it fetches
+real quote/stats and answers with live numbers. One-time install:
+
+```powershell
+pip install -r bridge/requirements.txt
+```
+
+Then just ask:
+
+```
+you> what is AAPL trading at right now?
+you> is TSLA up or down today?
+you> what's NVDA's market cap and P/E?
+```
+
 ## Verification
 
 `./run.ps1 -Headless` boots the kernel with no display and confirms it reaches
