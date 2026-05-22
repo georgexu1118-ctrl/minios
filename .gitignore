@@ -5,3 +5,16 @@ build/
 *.elf
 *.log
 *.iso
+
+# secrets — never commit (the key lives DPAPI-encrypted OUTSIDE the repo)
+*.dpapi
+*.key
+*.pem
+.env
+.env.*
+secrets/
+openai_key*
+
+# python
+__pycache__/
+*.pyc
