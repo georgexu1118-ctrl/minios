@@ -1,0 +1,7 @@
+# build artifacts
+build/
+*.o
+*.bin
+*.elf
+*.log
+*.iso

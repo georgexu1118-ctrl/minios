@@ -1,0 +1,5 @@
+# Normalize line endings. Build-critical files (Makefile uses tabs, the
+# toolchain prefers LF) are stored and checked out with LF; PowerShell
+# scripts keep CRLF for Windows-native tooling.
+* text=auto eol=lf
+*.ps1 text eol=crlf
