@@ -1,3 +1,5 @@
+export const runtime = "edge"; // zero cold-start, instant streaming, global CDN
+
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
 
@@ -12,7 +14,7 @@ async function getStock(symbol: string): Promise<Record<string, unknown>> {
     const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
-      next: { revalidate: 0 },
+      cache: "no-store",
     });
     const data = await res.json() as {
       quoteResponse?: {
