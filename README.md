@@ -7,6 +7,10 @@ serial port directly. A host-side Python bridge connects the kernel to OpenAI, w
 Yahoo Finance data and DuckDuckGo web search. A React/Next.js web interface provides a
 beautiful Interstellar-themed chat UI backed by a FastAPI streaming API.
 
+The web chat includes GPT-OSS PDF Q&A: users can upload a text-based PDF in the
+browser, retrieve relevant page excerpts with Together AI embeddings, and receive
+answers with page citations without storing the uploaded file.
+
 ## Architecture
 
 ```
@@ -73,6 +77,10 @@ npx next dev
 ```
 
 Open http://localhost:3000 — full homepage + chat at http://localhost:3000/chat.
+
+For GPT-OSS PDF Q&A, configure `TOGETHER_API_KEY`. Text-based PDFs up to 5 MB are
+indexed in the current browser tab using `intfloat/multilingual-e5-large-instruct`;
+answers are generated with `openai/gpt-oss-20b`.
 
 ## One-time key setup
 

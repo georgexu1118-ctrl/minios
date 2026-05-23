@@ -8,6 +8,8 @@ import ChatMessage, { type Message } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import NebulaLayers from "@/components/NebulaLayers";
 import FlashcardDeck from "@/components/FlashcardDeck";
+import PdfUpload from "@/components/PdfUpload";
+import { buildPdfContext, type IndexedPdf } from "@/lib/pdf-context";
 
 const StarField = dynamic(() => import("@/components/StarField"), { ssr: false });
 
@@ -34,7 +36,7 @@ const MODELS = [
     id: "gpt-oss-20b",
     label: "GPT-OSS 20B",
     role: "Educational",
-    desc: "OpenAI open weights · schoolwork, exam prep, flashcards",
+    desc: "OpenAI open weights · schoolwork, PDF chat, flashcards",
     accent: "emerald",
   },
 ] as const;
@@ -48,6 +50,7 @@ export default function ChatPage() {
   const [sessionId] = useState(() => uuidv4());
   const [model, setModel] = useState<ModelId>("gpt-4o-mini");
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
+  const [pdfDocument, setPdfDocument] = useState<IndexedPdf | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +71,22 @@ export default function ChatPage() {
 
     try {
       const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
+
+      if (model === "gpt-oss-20b" && pdfDocument) {
+        const queryResponse = await fetch("/api/pdf/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q }),
+        });
+        const queryData = await queryResponse.json() as { embedding?: number[]; error?: string };
+        if (!queryResponse.ok || !queryData.embedding) {
+          throw new Error(queryData.error ?? "PDF search failed.");
+        }
+        history[history.length - 1] = {
+          role: "user",
+          content: `${q}\n\n${buildPdfContext(pdfDocument, queryData.embedding)}`,
+        };
+      }
 
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
@@ -115,7 +134,7 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, sessionId, model]);
+  }, [input, loading, messages, sessionId, model, pdfDocument]);
 
   const isEmpty = messages.length === 0;
 
@@ -234,6 +253,11 @@ export default function ChatPage() {
               );
             })}
           </div>
+          {model === "gpt-oss-20b" && (
+            <div className="mt-3">
+              <PdfUpload document={pdfDocument} disabled={loading} onChange={setPdfDocument} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -257,7 +281,7 @@ export default function ChatPage() {
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
                   Pick <span className="text-white font-semibold">GPT-4o-mini</span> (closed, general) or
                   <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork).
-                  Tap <span className="text-emerald-300 font-semibold">Flashcards</span> in the header for exam decks.
+                  GPT-OSS also supports <span className="text-emerald-300 font-semibold">PDF upload</span> and flashcards.
                 </p>
               </div>
 
@@ -290,7 +314,7 @@ export default function ChatPage() {
             loading={loading}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · GPT-4o-mini · GPT-OSS 20B · Flashcards · Live Web
+            AAOS Research · GPT-4o-mini · GPT-OSS 20B · PDF Chat · Flashcards · Live Web
           </p>
         </div>
       </footer>
