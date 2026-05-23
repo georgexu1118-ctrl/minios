@@ -10,7 +10,7 @@ import NebulaLayers from "@/components/NebulaLayers";
 
 const StarField = dynamic(() => import("@/components/StarField"), { ssr: false });
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE = "";
 
 const SUGGESTED = [
   "What is NVDA trading at right now?",
