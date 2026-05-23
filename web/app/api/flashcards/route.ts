@@ -3,28 +3,140 @@ export const runtime = "edge";
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
 
-const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string }> = {
+// Three providers, all speaking OpenAI Chat Completions.
+//   • gpt-4o-mini  → OpenAI direct (closed, fast, reliable, always default fallback)
+//   • gpt-oss-20b  → Groq if GROQ_API_KEY set (very fast LPU), else Together AI
+const MODELS: Record<string, { tries: { apiKeyEnv: string; baseURL?: string; modelId: string }[] }> = {
   "gpt-4o-mini": {
-    apiKeyEnv: "OPENAI_API_KEY",
-    modelId: "gpt-4o-mini",
+    tries: [
+      { apiKeyEnv: "OPENAI_API_KEY", modelId: "gpt-4o-mini" },
+    ],
   },
   "gpt-oss-20b": {
-    apiKeyEnv: "TOGETHER_API_KEY",
-    baseURL: "https://api.together.xyz/v1",
-    modelId: "openai/gpt-oss-20b",
+    tries: [
+      { apiKeyEnv: "GROQ_API_KEY",     baseURL: "https://api.groq.com/openai/v1",  modelId: "openai/gpt-oss-20b" },
+      { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1",     modelId: "openai/gpt-oss-20b" },
+    ],
   },
 };
 
 const FLASHCARD_SYSTEM =
-  "You are AAOS Study — an exam preparation tutor. " +
-  "Generate exam-ready flashcards on the topic the user gives you. " +
-  "Output ONLY a JSON object with shape: " +
-  '{ "cards": [{ "q": "question", "a": "answer", "hint": "one-line hint or empty string" }] }. ' +
-  "Do not wrap in markdown fences. Do not add any other prose. " +
-  "Mix factual recall, conceptual understanding, and applied problem-solving. " +
-  "Keep questions tight (under 25 words) and answers complete but concise (under 60 words).";
+  "You are AAOS Study — a fast, accurate exam flashcard generator. " +
+  "Output ONLY raw JSON in this exact shape — no markdown fences, no commentary, no preamble: " +
+  '{"cards":[{"q":"question","a":"answer"}]}. ' +
+  "Each q is a single concept under 20 words. Each a is one tight sentence under 35 words. " +
+  "Mix definitional recall, conceptual reasoning, and short applied problems.";
 
 interface Flashcard { q: string; a: string; hint?: string; }
+
+// Repair a JSON string that was truncated mid-array. Walks back to the last
+// complete object and closes the brackets, salvaging whatever the model produced.
+function repairTruncatedJSON(s: string): string {
+  let str = s.trim();
+  // strip code fences if any
+  str = str.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  // try parsing as-is first
+  try { JSON.parse(str); return str; } catch {}
+
+  // find last complete object inside the "cards" array
+  const arrStart = str.indexOf("[");
+  if (arrStart < 0) return str;
+  // walk forward, tracking brace depth, recording end of each top-level object
+  let depth = 0;
+  let inStr = false;
+  let escaped = false;
+  let lastObjectEnd = -1;
+  for (let i = arrStart; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { escaped = false; continue; }
+    if (ch === "\\") { escaped = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) lastObjectEnd = i;
+    }
+  }
+  if (lastObjectEnd < 0) return str;
+
+  // Close array at the last complete object, then close the wrapping object
+  let repaired = str.slice(0, lastObjectEnd + 1) + "]";
+  // ensure wrapping {"cards": [...]} is closed
+  const wrapDepth = (repaired.match(/\{/g) || []).length - (repaired.match(/\}/g) || []).length;
+  for (let i = 0; i < wrapDepth; i++) repaired += "}";
+  return repaired;
+}
+
+function extractCards(raw: string): Flashcard[] {
+  if (!raw) return [];
+
+  let candidate = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+
+  // case 1: object with "cards" key
+  let parsed: unknown = null;
+  try { parsed = JSON.parse(candidate); } catch {}
+  if (!parsed) {
+    // case 2: raw bare array
+    const arrMatch = candidate.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (arrMatch) {
+      try { parsed = JSON.parse(arrMatch[0]); } catch {}
+    }
+  }
+  if (!parsed) {
+    // case 3: truncated — repair and try again
+    try { parsed = JSON.parse(repairTruncatedJSON(candidate)); } catch {}
+  }
+
+  let cards: unknown[] = [];
+  if (Array.isArray(parsed)) cards = parsed;
+  else if (parsed && typeof parsed === "object" && Array.isArray((parsed as { cards?: unknown[] }).cards)) {
+    cards = (parsed as { cards: unknown[] }).cards;
+  }
+
+  return cards
+    .map(c => {
+      if (!c || typeof c !== "object") return null;
+      const o = c as Record<string, unknown>;
+      const q = typeof o.q === "string" ? o.q : (typeof o.front === "string" ? o.front : null);
+      const a = typeof o.a === "string" ? o.a : (typeof o.back  === "string" ? o.back  : null);
+      if (!q || !a) return null;
+      return { q: q.trim(), a: a.trim() };
+    })
+    .filter((c): c is Flashcard => !!c);
+}
+
+async function tryGenerate(
+  apiKey: string,
+  baseURL: string | undefined,
+  modelId: string,
+  topic: string,
+  count: number,
+  difficulty: string,
+  useResponseFormat: boolean,
+): Promise<{ cards: Flashcard[]; raw: string; error?: string }> {
+  const openai = new OpenAI({ apiKey, baseURL });
+  const userPrompt =
+    `Generate exactly ${count} ${difficulty}-difficulty flashcards on: "${topic}". ` +
+    `Output ONLY: {"cards":[{"q":"...","a":"..."}]}. No prose, no fences.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: modelId,
+      messages: [
+        { role: "system", content: FLASHCARD_SYSTEM },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.5,
+      max_tokens: 4000,
+      ...(useResponseFormat ? { response_format: { type: "json_object" } } : {}),
+    });
+    const raw = completion.choices?.[0]?.message?.content ?? "";
+    return { cards: extractCards(raw), raw };
+  } catch (e) {
+    return { cards: [], raw: "", error: String(e) };
+  }
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json() as {
@@ -41,60 +153,44 @@ export async function POST(req: NextRequest) {
   const count = Math.min(Math.max(body.count ?? 8, 1), 20);
   const difficulty = body.difficulty ?? "mixed";
   const requested = body.model ?? "gpt-oss-20b";
-  const config = MODELS[requested] ?? MODELS["gpt-oss-20b"];
+  const primary = MODELS[requested] ?? MODELS["gpt-oss-20b"];
 
-  const apiKey = process.env[config.apiKeyEnv];
-  if (!apiKey) {
-    return Response.json({
-      error: config.apiKeyEnv === "TOGETHER_API_KEY"
-        ? "gpt-oss-20b requires TOGETHER_API_KEY. Set it in Vercel env vars."
-        : `${config.apiKeyEnv} not configured`,
-    }, { status: 500 });
+  const attemptOrder: { apiKeyEnv: string; baseURL?: string; modelId: string }[] = [
+    // requested provider chain
+    ...primary.tries,
+    // always end with closed-weight fallback so the user gets cards even if the
+    // open-weight chain fails (truncation, rate-limit, missing keys, etc.)
+    ...(requested === "gpt-4o-mini" ? [] : MODELS["gpt-4o-mini"].tries),
+  ];
+
+  let lastError = "no providers configured";
+  let lastRaw = "";
+
+  for (const t of attemptOrder) {
+    const apiKey = process.env[t.apiKeyEnv];
+    if (!apiKey) {
+      lastError = `${t.apiKeyEnv} not set`;
+      continue;
+    }
+    // OpenAI direct supports json_object; Groq + Together are flaky on gpt-oss → skip there.
+    const useResponseFormat = t.apiKeyEnv === "OPENAI_API_KEY";
+    const out = await tryGenerate(apiKey, t.baseURL, t.modelId, topic, count, difficulty, useResponseFormat);
+    if (out.cards.length) {
+      return Response.json({
+        topic,
+        count: out.cards.length,
+        model: t.modelId,
+        provider: t.baseURL ?? "openai",
+        cards: out.cards,
+      });
+    }
+    lastError = out.error ?? "no cards parsed";
+    lastRaw = out.raw;
   }
 
-  const openai = new OpenAI({ apiKey, baseURL: config.baseURL });
-
-  const userPrompt =
-    `Generate exactly ${count} ${difficulty}-difficulty flashcards on: "${topic}". ` +
-    `Return strict JSON: { "cards": [{ "q": "...", "a": "...", "hint": "..." }] }. No prose.`;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: config.modelId,
-      messages: [
-        { role: "system", content: FLASHCARD_SYSTEM },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.5,
-      max_tokens: 1800,
-      // Together's DeepSeek supports JSON mode through the OpenAI-compatible shape.
-      response_format: { type: "json_object" },
-    });
-
-    const raw = completion.choices?.[0]?.message?.content ?? "{}";
-    // Best-effort cleanup: strip possible code fences if model ignores response_format.
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
-
-    let parsed: { cards?: Flashcard[] } = {};
-    try { parsed = JSON.parse(cleaned); }
-    catch {
-      // Try to find the first { ... } block
-      const m = cleaned.match(/\{[\s\S]*\}/);
-      if (m) { try { parsed = JSON.parse(m[0]); } catch {} }
-    }
-
-    const cards = Array.isArray(parsed.cards) ? parsed.cards.filter(c => c && c.q && c.a) : [];
-    if (!cards.length) {
-      return Response.json({ error: "model returned no usable cards", raw: raw.slice(0, 400) }, { status: 502 });
-    }
-
-    return Response.json({
-      topic,
-      count: cards.length,
-      model: config.modelId,
-      cards,
-    });
-  } catch (e) {
-    return Response.json({ error: String(e) }, { status: 500 });
-  }
+  return Response.json({
+    error: lastError,
+    hint: "All providers failed. Add GROQ_API_KEY for fast open-weight generation.",
+    raw: lastRaw.slice(0, 300),
+  }, { status: 502 });
 }
