@@ -10,7 +10,7 @@ const API_BASE = "";
 
 const DEMO_HINTS = [
   "What is AAOI trading at?",
-  "Latest AI news?",
+  "Help me study mitosis vs meiosis",
   "How does a black hole form?",
 ];
 

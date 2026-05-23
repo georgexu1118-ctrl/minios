@@ -181,35 +181,59 @@ const SYSTEM_PROMPT =
   "Be concise, accurate, and confident. Prefer bullet points for multi-part answers.";
 
 // ---------------------------------------------------------------------------
-// Model registry — closed vs open-weight routing
+// Model registry — general-purpose vs educational
 // ---------------------------------------------------------------------------
-// "gpt-4o-mini"   → OpenAI proprietary (closed weights, cheapest)
-// "gpt-oss-120b"  → OpenAI open-weight model hosted on Together AI
-// Both speak the OpenAI Chat Completions protocol, so we just swap baseURL/key.
-const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string }> = {
+// "gpt-4o-mini"  → OpenAI proprietary, general-purpose, fastest, cheapest
+// "gpt-oss-20b"  → OpenAI open-weight model on Together AI; tuned via prompt
+//                  for educational use (school work, study, flashcards)
+const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string; mode: "general" | "educational" }> = {
   "gpt-4o-mini": {
     apiKeyEnv: "OPENAI_API_KEY",
     modelId: "gpt-4o-mini",
+    mode: "general",
   },
-  "gpt-oss-120b": {
+  "gpt-oss-20b": {
     apiKeyEnv: "TOGETHER_API_KEY",
     baseURL: "https://api.together.xyz/v1",
-    modelId: "openai/gpt-oss-120b",
+    modelId: "openai/gpt-oss-20b",
+    mode: "educational",
   },
 };
+
+const SYSTEM_PROMPT_EDU =
+  "You are AAOS Study — an educational tutor running on the AAOS Autonomous AI OS. " +
+  "Specialize in school subjects: math, biology, chemistry, physics, history, literature, computer science. " +
+  "Explain step by step, define terms, and check understanding. " +
+  "When the student asks a homework-style question, walk them through the reasoning instead of just giving the final answer. " +
+  "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
+  "When asked for flashcards, suggest the user click the Flashcards button for a structured set.";
+
+const SYSTEM_PROMPT_FLASHCARDS =
+  "You are an exam-prep flashcard generator. " +
+  "Output ONLY a valid JSON array — no markdown, no code fences, no preamble, no commentary. " +
+  "Schema: [{\"front\":\"question or term\",\"back\":\"answer or definition\"}]. " +
+  "Each front is one concept. Each back is 1-3 short sentences. " +
+  "If the user requests a specific count, produce exactly that many cards.";
 
 // ---------------------------------------------------------------------------
 // POST /api/chat  — streaming SSE
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { messages: { role: string; content: string }[]; model?: string };
-  const requested = body.model ?? "gpt-4o-mini";
+  const body = await req.json() as {
+    messages: { role: string; content: string }[];
+    model?: string;
+    mode?: "flashcards";
+  };
+
+  // Flashcard mode forces the open-weight educational model and skips tools.
+  const isFlashcards = body.mode === "flashcards";
+  const requested = isFlashcards ? "gpt-oss-20b" : (body.model ?? "gpt-4o-mini");
   const config = MODELS[requested] ?? MODELS["gpt-4o-mini"];
 
   const apiKey = process.env[config.apiKeyEnv];
   if (!apiKey) {
     const friendly = config.apiKeyEnv === "TOGETHER_API_KEY"
-      ? "gpt-oss-120b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel."
+      ? "gpt-oss-20b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel."
       : `${config.apiKeyEnv} not configured`;
     return new Response(JSON.stringify({ error: friendly }), {
       status: 500, headers: { "Content-Type": "application/json" },
@@ -218,8 +242,11 @@ export async function POST(req: NextRequest) {
 
   const model = config.modelId;
   const openai = new OpenAI({ apiKey, baseURL: config.baseURL });
+  const sysPrompt = isFlashcards
+    ? SYSTEM_PROMPT_FLASHCARDS
+    : (config.mode === "educational" ? SYSTEM_PROMPT_EDU : SYSTEM_PROMPT);
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: sysPrompt },
     ...(body.messages ?? []).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
   ];
 
@@ -232,6 +259,48 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        // ── FLASHCARD MODE ───────────────────────────────────────────
+        // Collect full JSON output, parse, emit one "flashcards" event.
+        if (isFlashcards) {
+          const completion = await openai.chat.completions.create({
+            model, messages, temperature: 0.5, max_tokens: 1500, stream: false,
+          });
+          const raw = completion.choices[0]?.message?.content ?? "";
+
+          // Strip code fences / preamble if the model added them anyway
+          let jsonStr = raw.trim();
+          const fence = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (fence) jsonStr = fence[1].trim();
+          const firstBracket = jsonStr.indexOf("[");
+          const lastBracket  = jsonStr.lastIndexOf("]");
+          if (firstBracket >= 0 && lastBracket > firstBracket) {
+            jsonStr = jsonStr.slice(firstBracket, lastBracket + 1);
+          }
+
+          let cards: { front: string; back: string }[] = [];
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (Array.isArray(parsed)) {
+              cards = parsed
+                .filter(c => c && typeof c.front === "string" && typeof c.back === "string")
+                .map(c => ({ front: String(c.front).trim(), back: String(c.back).trim() }));
+            }
+          } catch {
+            send({ type: "error", message: "Could not parse flashcards JSON. Raw: " + raw.slice(0, 200) });
+            return;
+          }
+
+          if (!cards.length) {
+            send({ type: "error", message: "Model returned no valid flashcards." });
+            return;
+          }
+
+          send({ type: "flashcards", cards });
+          send({ type: "done", text: `${cards.length} flashcards generated.` });
+          return;
+        }
+
+        // ── REGULAR CHAT MODE ────────────────────────────────────────
         for (let round = 0; round < 4; round++) {
           const chunks = await openai.chat.completions.create({
             model, messages, tools: TOOLS, temperature: 0.4, max_tokens: 600, stream: true,

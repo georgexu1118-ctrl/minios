@@ -3,10 +3,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Cpu, Zap, ArrowLeft, RotateCcw, Lock, Unlock } from "lucide-react";
+import { Cpu, Zap, ArrowLeft, RotateCcw, Briefcase, GraduationCap, Sparkles } from "lucide-react";
 import ChatMessage, { type Message } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import NebulaLayers from "@/components/NebulaLayers";
+import FlashcardDeck from "@/components/FlashcardDeck";
 
 const StarField = dynamic(() => import("@/components/StarField"), { ssr: false });
 
@@ -22,8 +23,20 @@ const SUGGESTED = [
 ];
 
 const MODELS = [
-  { id: "gpt-4o-mini",  label: "gpt-4o-mini",   tag: "closed", desc: "OpenAI proprietary · fastest · cheapest" },
-  { id: "gpt-oss-120b", label: "gpt-oss-120b",  tag: "open",   desc: "OpenAI open weights · hosted on Together AI" },
+  {
+    id: "gpt-4o-mini",
+    label: "GPT-4o-mini",
+    role: "General",
+    desc: "OpenAI closed weights · stocks, news, code, everyday Q&A",
+    accent: "violet",
+  },
+  {
+    id: "gpt-oss-20b",
+    label: "GPT-OSS 20B",
+    role: "Educational",
+    desc: "OpenAI open weights · schoolwork, exam prep, flashcards",
+    accent: "emerald",
+  },
 ] as const;
 
 type ModelId = typeof MODELS[number]["id"];
@@ -34,6 +47,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => uuidv4());
   const [model, setModel] = useState<ModelId>("gpt-4o-mini");
+  const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -134,38 +148,20 @@ export default function ChatPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Model toggle */}
-          <div className="hidden md:flex items-center gap-1 p-0.5 rounded-lg glass"
-            style={{ borderColor: "rgba(120,60,240,0.2)" }}
-            title="Choose between closed-weight (gpt-4o-mini) and open-weight (gpt-oss-120b) models">
-            {MODELS.map(m => {
-              const active = model === m.id;
-              const isOpen = m.tag === "open";
-              return (
-                <button key={m.id}
-                  onClick={() => setModel(m.id)}
-                  disabled={loading}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px]
-                    font-mono tracking-wider cursor-pointer transition-all duration-200
-                    disabled:cursor-not-allowed disabled:opacity-60
-                    ${active
-                      ? (isOpen
-                          ? "bg-emerald-700/40 text-emerald-200 border border-emerald-500/40"
-                          : "bg-violet-700/40 text-violet-100 border border-violet-500/40")
-                      : "text-violet-400/60 hover:text-violet-200 border border-transparent"}`}>
-                  {isOpen ? <Unlock size={9} /> : <Lock size={9} />}
-                  <span>{m.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Flashcards button */}
+          <button onClick={() => setFlashcardsOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+              bg-emerald-700/30 border border-emerald-500/40 text-emerald-200
+              text-[11px] font-mono tracking-wider cursor-pointer
+              hover:bg-emerald-700/50 transition-colors"
+            title="Generate exam flashcards (uses selected model)">
+            <Sparkles size={11} /> Flashcards
+          </button>
 
-          <div className="hidden sm:flex items-center gap-2 text-[10px] text-violet-400/50">
-            <span className="flex items-center gap-1">
-              <Zap size={10} />
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-              live
-            </span>
+          <div className="hidden sm:flex items-center gap-1 text-[10px] text-violet-400/50">
+            <Zap size={10} />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+            live
           </div>
           {!isEmpty && (
             <button
@@ -178,6 +174,64 @@ export default function ChatPage() {
           )}
         </div>
       </header>
+
+      {/* ── PROMINENT MODEL SELECTOR (clear white labels on top) ───── */}
+      <div className="relative z-10 px-4 md:px-8 pt-4 pb-3 flex-shrink-0">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-center text-[10px] font-mono tracking-[0.25em] text-violet-400/70 uppercase mb-3">
+            Choose your model
+          </p>
+          <div className="grid grid-cols-2 gap-2 md:gap-3">
+            {MODELS.map(m => {
+              const active = model === m.id;
+              const isEdu = m.accent === "emerald";
+              return (
+                <button key={m.id}
+                  onClick={() => setModel(m.id)}
+                  disabled={loading}
+                  className={`relative rounded-xl p-3 md:p-4 text-left transition-all duration-200
+                    cursor-pointer disabled:cursor-not-allowed disabled:opacity-60
+                    ${active
+                      ? (isEdu
+                          ? "bg-emerald-900/40 border-emerald-500/60 shadow-lg shadow-emerald-900/30"
+                          : "bg-violet-900/40 border-violet-500/60 shadow-lg shadow-violet-900/30")
+                      : "glass border-violet-700/20 hover:border-violet-500/40"}
+                    border-2`}>
+                  <div className="flex items-start gap-2.5">
+                    <div className={`mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center
+                      ${isEdu ? "bg-emerald-700/40" : "bg-violet-700/40"}`}>
+                      {isEdu
+                        ? <GraduationCap size={14} className="text-emerald-300" />
+                        : <Briefcase size={14} className="text-violet-300" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        {/* WHITE label, clearly visible */}
+                        <span className="text-sm md:text-base font-bold text-white tracking-tight">
+                          {m.label}
+                        </span>
+                        <span className={`text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded
+                          ${isEdu
+                            ? "bg-emerald-700/40 text-emerald-200 border border-emerald-500/30"
+                            : "bg-violet-700/40 text-violet-200 border border-violet-500/30"}`}>
+                          {m.role}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-violet-300/70 leading-snug">
+                        {m.desc}
+                      </p>
+                    </div>
+                    {active && (
+                      <div className={`absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse
+                        ${isEdu ? "bg-emerald-400" : "bg-violet-400"}`} />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* Messages */}
       <main className="relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-8 min-h-0">
@@ -197,29 +251,10 @@ export default function ChatPage() {
                   current events, science, or anything in the universe.
                 </p>
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
-                  Choose between <span className="text-violet-300">GPT-4o-mini</span> (closed)
-                  and OpenAI&apos;s <span className="text-emerald-300">gpt-oss-120b</span> (open weights) — toggle in the header.
+                  Pick <span className="text-white font-semibold">GPT-4o-mini</span> (closed) for general
+                  questions or <span className="text-white font-semibold">GPT-OSS 20B</span> (open) for
+                  schoolwork. Tap <span className="text-emerald-300 font-semibold">Flashcards</span> in the header to generate exam decks.
                 </p>
-              </div>
-
-              {/* Model toggle on mobile / empty state */}
-              <div className="md:hidden flex items-center gap-1 p-0.5 rounded-lg glass">
-                {MODELS.map(m => {
-                  const active = model === m.id;
-                  const isOpen = m.tag === "open";
-                  return (
-                    <button key={m.id} onClick={() => setModel(m.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px]
-                        font-mono tracking-wider cursor-pointer transition-all
-                        ${active
-                          ? (isOpen ? "bg-emerald-700/40 text-emerald-200 border border-emerald-500/40"
-                                    : "bg-violet-700/40 text-violet-100 border border-violet-500/40")
-                          : "text-violet-400/60"}`}>
-                      {isOpen ? <Unlock size={10} /> : <Lock size={10} />}
-                      {m.label}
-                    </button>
-                  );
-                })}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl animate-fade-in-delay-1">
@@ -251,10 +286,13 @@ export default function ChatPage() {
             loading={loading}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · Kernel · GPT-4o-mini (closed) + gpt-oss-120b (open) · Live Web
+            AAOS Research · GPT-4o-mini (closed) + GPT-OSS 20B (open) · Flashcards · Live Web
           </p>
         </div>
       </footer>
+
+      {/* Flashcard generator modal */}
+      <FlashcardDeck open={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} model={model} />
     </div>
   );
 }
