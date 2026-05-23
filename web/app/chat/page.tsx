@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Cpu, Zap, ArrowLeft, RotateCcw, Briefcase, GraduationCap, Sparkles, Brain } from "lucide-react";
+import { Cpu, Zap, ArrowLeft, RotateCcw, Briefcase, GraduationCap, Sparkles } from "lucide-react";
 import ChatMessage, { type Message } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import NebulaLayers from "@/components/NebulaLayers";
@@ -36,13 +36,6 @@ const MODELS = [
     role: "Educational",
     desc: "OpenAI open weights · schoolwork, exam prep, flashcards",
     accent: "emerald",
-  },
-  {
-    id: "hermes-4-70b",
-    label: "Hermes 4 70B",
-    role: "Reasoning",
-    desc: "Nous Research open weights · deliberate step-by-step thinking",
-    accent: "amber",
   },
 ] as const;
 
@@ -188,7 +181,7 @@ export default function ChatPage() {
           <p className="text-center text-[10px] font-mono tracking-[0.25em] text-violet-400/70 uppercase mb-3">
             Choose your model
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
             {MODELS.map(m => {
               const active = model === m.id;
               const accent = m.accent;
@@ -198,17 +191,11 @@ export default function ChatPage() {
                     iconBg: "bg-emerald-700/40", iconText: "text-emerald-300",
                     badgeBg: "bg-emerald-700/40", badgeText: "text-emerald-200", badgeBorder: "border-emerald-500/30",
                     dot: "bg-emerald-400" }
-                : accent === "amber"
-                ? { bg: "bg-amber-900/40", border: "border-amber-500/60", shadow: "shadow-amber-900/30",
-                    iconBg: "bg-amber-700/40", iconText: "text-amber-300",
-                    badgeBg: "bg-amber-700/40", badgeText: "text-amber-200", badgeBorder: "border-amber-500/30",
-                    dot: "bg-amber-400" }
                 : { bg: "bg-violet-900/40", border: "border-violet-500/60", shadow: "shadow-violet-900/30",
                     iconBg: "bg-violet-700/40", iconText: "text-violet-300",
                     badgeBg: "bg-violet-700/40", badgeText: "text-violet-200", badgeBorder: "border-violet-500/30",
                     dot: "bg-violet-400" };
               const Icon = accent === "emerald" ? GraduationCap
-                         : accent === "amber"   ? Brain
                          : Briefcase;
               return (
                 <button key={m.id}
@@ -268,9 +255,8 @@ export default function ChatPage() {
                   current events, science, or anything in the universe.
                 </p>
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
-                  Pick <span className="text-white font-semibold">GPT-4o-mini</span> (closed, general),
-                  <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork), or
-                  <span className="text-white font-semibold"> Hermes 4 70B</span> (open, reasoning).
+                  Pick <span className="text-white font-semibold">GPT-4o-mini</span> (closed, general) or
+                  <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork).
                   Tap <span className="text-emerald-300 font-semibold">Flashcards</span> in the header for exam decks.
                 </p>
               </div>
@@ -304,7 +290,7 @@ export default function ChatPage() {
             loading={loading}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · GPT-4o-mini · GPT-OSS 20B · Hermes 4 70B · Flashcards · Live Web
+            AAOS Research · GPT-4o-mini · GPT-OSS 20B · Flashcards · Live Web
           </p>
         </div>
       </footer>

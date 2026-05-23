@@ -186,7 +186,7 @@ const SYSTEM_PROMPT =
 // "gpt-4o-mini"  → OpenAI proprietary, general-purpose, fastest, cheapest
 // "gpt-oss-20b"  → OpenAI open-weight model on Together AI; tuned via prompt
 //                  for educational use (school work, study, flashcards)
-const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string; mode: "general" | "educational" | "reasoning" }> = {
+const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string; mode: "general" | "educational" }> = {
   "gpt-4o-mini": {
     apiKeyEnv: "OPENAI_API_KEY",
     modelId: "gpt-4o-mini",
@@ -198,12 +198,6 @@ const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: str
     modelId: "openai/gpt-oss-20b",
     mode: "educational",
   },
-  "hermes-4-70b": {
-    apiKeyEnv: "OPENROUTER_API_KEY",
-    baseURL: "https://openrouter.ai/api/v1",
-    modelId: "nousresearch/hermes-4-70b",
-    mode: "reasoning",
-  },
 };
 
 const SYSTEM_PROMPT_EDU =
@@ -213,12 +207,6 @@ const SYSTEM_PROMPT_EDU =
   "When the student asks a homework-style question, walk them through the reasoning instead of just giving the final answer. " +
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set.";
-
-const SYSTEM_PROMPT_REASONING =
-  "You are AAOS · Hermes — a deliberate, transparent reasoning agent running on the AAOS Autonomous AI OS, " +
-  "powered by Nous Research's Hermes 4 (70B). When the user asks a hard question, think step-by-step in plain English. " +
-  "For multi-part problems, show your work. For trade-off questions, lay out the options before recommending. " +
-  "Use get_stock for US equities and web_search for current events. Be direct and confident — no apologies, no hedging.";
 
 const SYSTEM_PROMPT_FLASHCARDS =
   "You are an exam-prep flashcard generator. " +
@@ -245,8 +233,7 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env[config.apiKeyEnv];
   if (!apiKey) {
     const friendlyMap: Record<string, string> = {
-      "TOGETHER_API_KEY":   "gpt-oss-20b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel.",
-      "OPENROUTER_API_KEY": "Hermes 4 requires OPENROUTER_API_KEY in environment. Add it in Vercel (free key at openrouter.ai/keys) or switch to another model.",
+      "TOGETHER_API_KEY": "gpt-oss-20b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel.",
     };
     const friendly = friendlyMap[config.apiKeyEnv] ?? `${config.apiKeyEnv} not configured`;
     return new Response(JSON.stringify({ error: friendly }), {
@@ -259,7 +246,6 @@ export async function POST(req: NextRequest) {
   const sysPrompt = isFlashcards
     ? SYSTEM_PROMPT_FLASHCARDS
     : config.mode === "educational" ? SYSTEM_PROMPT_EDU
-    : config.mode === "reasoning"   ? SYSTEM_PROMPT_REASONING
     : SYSTEM_PROMPT;
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: sysPrompt },

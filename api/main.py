@@ -1,6 +1,6 @@
 """
 minios AI - FastAPI backend
-Connects the web UI to the Hermes agent / OpenAI / minios kernel bridge.
+Connects the web UI to OpenAI and the minios kernel bridge.
 """
 import asyncio
 import json

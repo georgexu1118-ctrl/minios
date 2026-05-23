@@ -210,7 +210,7 @@ SYSTEM_PROMPT = (
 # --------------------------------------------------------------------------- #
 # --------------------------------------------------------------------------- #
 # Provider registry — same OpenAI Chat Completions wire format across all.
-# Selected with --provider {openai,hermes,gpt-oss}. Each provider has its own
+# Selected with --provider {openai,gpt-oss}. Each provider has its own
 # env var so users can mix and match without overwriting keys.
 # --------------------------------------------------------------------------- #
 PROVIDERS = {
@@ -219,17 +219,6 @@ PROVIDERS = {
         "env":      "OPENAI_API_KEY",
         "default_model": "gpt-4o-mini",
         "label":    "OpenAI (closed)",
-    },
-    "hermes": {
-        # Nous Research's Hermes 4 70B via OpenRouter (OpenAI-compatible).
-        "base_url": "https://openrouter.ai/api/v1/chat/completions",
-        "env":      "OPENROUTER_API_KEY",
-        "default_model": "nousresearch/hermes-4-70b",
-        "label":    "Hermes 4 70B (Nous Research, open)",
-        "extra_headers": {
-            "HTTP-Referer": "https://aaos-research.vercel.app",
-            "X-Title":      "AAOS Kernel Bridge",
-        },
     },
     "gpt-oss": {
         # OpenAI's open-weight 20B via Groq for lowest latency.
@@ -338,7 +327,7 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=4555)
     ap.add_argument("--provider", choices=list(PROVIDERS.keys()), default="openai",
-                    help="LLM provider: openai (gpt-4o-mini), hermes (Nous Hermes 4 70B via OpenRouter), "
+                    help="LLM provider: openai (gpt-4o-mini), "
                          "gpt-oss (OpenAI gpt-oss-20b via Groq)")
     ap.add_argument("--model", default=None,
                     help="override model id (defaults to provider's recommended model)")

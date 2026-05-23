@@ -40,7 +40,7 @@ export default function HomePage() {
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
               glass border-violet-700/30 text-[11px] font-mono tracking-widest text-violet-400/80">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-              AAOS v1.1 · Kernel Active · Hermes 4 · GPT-OSS · GPT-4o
+              AAOS v1.1 · Kernel Active · GPT-OSS · GPT-4o
             </span>
           </div>
 
@@ -69,8 +69,8 @@ export default function HomePage() {
           <p className="animate-fade-in-delay-3 max-w-xl text-violet-300/70 text-base md:text-lg
             leading-relaxed font-light">
             AAOS Research is an autonomous AI system running inside a hand-crafted
-            32-bit OS kernel — with live market data, web intelligence, and the
-            reasoning power of a Hermes agent.
+            32-bit OS kernel — with live market data, web intelligence, and
+            specialized AI models.
           </p>
 
           {/* CTAs */}

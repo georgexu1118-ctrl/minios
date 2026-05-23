@@ -5,8 +5,8 @@ const FEATURES = [
   {
     icon: Brain,
     color: "#a78bfa",
-    title: "Hermes Agent",
-    desc: "Built on Nous Research Hermes — a state-of-the-art agentic model that plans, reasons, and orchestrates complex multi-step tasks autonomously.",
+    title: "Multi-Model Intelligence",
+    desc: "Choose specialized general-purpose and educational models for current research, coding, study support, and structured flashcards.",
   },
   {
     icon: TrendingUp,
@@ -99,7 +99,7 @@ export default function FeaturesSection() {
               { label: "→" },
               { label: "FastAPI", color: "#818cf8" },
               { label: "→" },
-              { label: "Hermes Agent", color: "#f59e0b" },
+              { label: "Model Router", color: "#f59e0b" },
               { label: "→" },
               { label: "OpenAI", color: "#34d399" },
               { label: "→" },

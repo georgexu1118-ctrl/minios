@@ -10,7 +10,7 @@ beautiful Interstellar-themed chat UI backed by a FastAPI streaming API.
 ## Architecture
 
 ```
-Browser (Next.js) → FastAPI API → OpenAI (Hermes/GPT-4o-mini)
+Browser (Next.js) → FastAPI API → OpenAI (GPT-4o-mini/GPT-OSS)
                                → get_stock (Yahoo Finance)
                                → web_search (DuckDuckGo)
 
