@@ -18,3 +18,14 @@ openai_key*
 # python
 __pycache__/
 *.pyc
+*.pyo
+api/.env
+
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/.env.local
+web/out/
+
+# Vercel
+.vercel/

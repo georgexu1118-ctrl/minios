@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --accent: #7c3aed;
+  --accent-bright: #a78bfa;
+  --accent-glow: rgba(124, 58, 237, 0.35);
+  --bg-glass: rgba(8, 6, 20, 0.72);
+  --border-subtle: rgba(124, 58, 237, 0.18);
+  --text-dim: rgba(196, 181, 253, 0.55);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #060412;
+  color: #e2d9f3;
+  font-family: "Inter", "SF Pro Display", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+.glass {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.glow-hover {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.glow-hover:hover {
+  box-shadow: 0 0 22px var(--accent-glow), 0 0 4px var(--accent);
+  border-color: rgba(124, 58, 237, 0.5);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--accent-bright);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-start infinite;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg-enter { animation: msgIn 0.3s ease forwards; }
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px var(--accent-glow); }
+  50% { box-shadow: 0 0 24px var(--accent-glow), 0 0 48px rgba(124,58,237,0.15); }
+}
+.pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
