@@ -114,13 +114,20 @@ async function tryGenerate(
   count: number,
   difficulty: string,
   useResponseFormat: boolean,
+  isGroq: boolean,
+  timeoutMs: number,
 ): Promise<{ cards: Flashcard[]; raw: string; error?: string }> {
-  const openai = new OpenAI({ apiKey, baseURL });
+  const openai = new OpenAI({ apiKey, baseURL, timeout: timeoutMs, maxRetries: 0 });
   const userPrompt =
     `Generate exactly ${count} ${difficulty}-difficulty flashcards on: "${topic}". ` +
     `Output ONLY: {"cards":[{"q":"...","a":"..."}]}. No prose, no fences.`;
 
   try {
+    // gpt-oss on Groq defaults to medium reasoning effort which adds ~15s
+    // of CoT tokens we don't need for structured flashcard JSON. Force low.
+    const extras: Record<string, unknown> = {};
+    if (isGroq) extras.reasoning_effort = "low";
+
     const completion = await openai.chat.completions.create({
       model: modelId,
       messages: [
@@ -129,7 +136,9 @@ async function tryGenerate(
       ],
       temperature: 0.5,
       max_tokens: 4000,
+      stream: false,
       ...(useResponseFormat ? { response_format: { type: "json_object" } } : {}),
+      ...extras,
     });
     const raw = completion.choices?.[0]?.message?.content ?? "";
     return { cards: extractCards(raw), raw };
@@ -155,26 +164,33 @@ export async function POST(req: NextRequest) {
   const requested = body.model ?? "gpt-oss-20b";
   const primary = MODELS[requested] ?? MODELS["gpt-oss-20b"];
 
-  const attemptOrder: { apiKeyEnv: string; baseURL?: string; modelId: string }[] = [
-    // requested provider chain
-    ...primary.tries,
-    // always end with closed-weight fallback so the user gets cards even if the
-    // open-weight chain fails (truncation, rate-limit, missing keys, etc.)
-    ...(requested === "gpt-4o-mini" ? [] : MODELS["gpt-4o-mini"].tries),
-  ];
+  // Build attempt order with per-provider timeouts so the whole call stays
+  // under Vercel's 25s edge function limit even if one provider hangs.
+  const hasGroq     = !!process.env.GROQ_API_KEY;
+  const hasTogether = !!process.env.TOGETHER_API_KEY;
+  const hasOpenAI   = !!process.env.OPENAI_API_KEY;
 
-  let lastError = "no providers configured";
+  type Attempt = { apiKeyEnv: string; baseURL?: string; modelId: string; timeoutMs: number };
+  const attempts: Attempt[] = [];
+
+  if (requested === "gpt-oss-20b") {
+    // Prefer Groq (fast), then OpenAI fallback. Skip Together when Groq is
+    // available — Together is too slow to be a useful fallback inside 25s.
+    if (hasGroq)     attempts.push({ apiKeyEnv: "GROQ_API_KEY",     baseURL: "https://api.groq.com/openai/v1",  modelId: "openai/gpt-oss-20b", timeoutMs: 8000 });
+    if (!hasGroq && hasTogether) attempts.push({ apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "openai/gpt-oss-20b", timeoutMs: 18000 });
+    if (hasOpenAI)   attempts.push({ apiKeyEnv: "OPENAI_API_KEY",   modelId: "gpt-4o-mini",                                                                  timeoutMs: 12000 });
+  } else {
+    if (hasOpenAI)   attempts.push({ apiKeyEnv: "OPENAI_API_KEY",   modelId: "gpt-4o-mini",                                                                  timeoutMs: 12000 });
+  }
+
+  let lastError = attempts.length ? "all providers failed" : "no providers configured";
   let lastRaw = "";
 
-  for (const t of attemptOrder) {
-    const apiKey = process.env[t.apiKeyEnv];
-    if (!apiKey) {
-      lastError = `${t.apiKeyEnv} not set`;
-      continue;
-    }
-    // OpenAI direct supports json_object; Groq + Together are flaky on gpt-oss → skip there.
+  for (const t of attempts) {
+    const apiKey = process.env[t.apiKeyEnv]!;
     const useResponseFormat = t.apiKeyEnv === "OPENAI_API_KEY";
-    const out = await tryGenerate(apiKey, t.baseURL, t.modelId, topic, count, difficulty, useResponseFormat);
+    const isGroq = t.apiKeyEnv === "GROQ_API_KEY";
+    const out = await tryGenerate(apiKey, t.baseURL, t.modelId, topic, count, difficulty, useResponseFormat, isGroq, t.timeoutMs);
     if (out.cards.length) {
       return Response.json({
         topic,
