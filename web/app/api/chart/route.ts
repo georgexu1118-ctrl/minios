@@ -30,7 +30,12 @@ export async function GET(req: NextRequest) {
             previousClose?: number;
           };
           timestamp?: number[];
-          indicators?: { quote?: Array<{ close?: (number | null)[] }> };
+          indicators?: { quote?: Array<{
+            open?: (number | null)[];
+            high?: (number | null)[];
+            low?: (number | null)[];
+            close?: (number | null)[];
+          }> };
         }>;
         error?: unknown;
       };
@@ -40,10 +45,17 @@ export async function GET(req: NextRequest) {
     if (!r) return Response.json({ error: "no data" }, { status: 404 });
 
     const ts = r.timestamp ?? [];
-    const closes = r.indicators?.quote?.[0]?.close ?? [];
+    const q = r.indicators?.quote?.[0] ?? {};
+    const opens  = q.open  ?? [];
+    const highs  = q.high  ?? [];
+    const lows   = q.low   ?? [];
+    const closes = q.close ?? [];
     const points = ts
-      .map((t, i) => ({ t: t * 1000, c: closes[i] }))
-      .filter(p => typeof p.c === "number" && p.c !== null) as { t: number; c: number }[];
+      .map((t, i) => ({ t: t * 1000, o: opens[i], h: highs[i], l: lows[i], c: closes[i] }))
+      .filter(p =>
+        typeof p.c === "number" && p.c !== null &&
+        typeof p.o === "number" && typeof p.h === "number" && typeof p.l === "number"
+      ) as { t: number; o: number; h: number; l: number; c: number }[];
 
     const meta = r.meta ?? {};
     const last = meta.regularMarketPrice ?? points[points.length - 1]?.c;

@@ -8,9 +8,9 @@ import FeaturesSection from "@/components/FeaturesSection";
 import FloatingChat from "@/components/FloatingChat";
 import SerenitySection from "@/components/SerenitySection";
 
-const StarField     = dynamic(() => import("@/components/StarField"),     { ssr: false });
-const WormholeOrb   = dynamic(() => import("@/components/WormholeOrb"),   { ssr: false });
-const LiveAaoiChart = dynamic(() => import("@/components/LiveAaoiChart"), { ssr: false });
+const StarField           = dynamic(() => import("@/components/StarField"),           { ssr: false });
+const WormholeOrb         = dynamic(() => import("@/components/WormholeOrb"),         { ssr: false });
+const FloatingAaoiTicker  = dynamic(() => import("@/components/FloatingAaoiTicker"),  { ssr: false });
 
 export default function HomePage() {
   return (
@@ -181,13 +181,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── LIVE AAOI CHART ──────────────────────────────────────── */}
-      <section className="py-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <LiveAaoiChart />
-        </div>
-      </section>
-
       {/* ── SERENITY TRACKER ─────────────────────────────────────── */}
       <SerenitySection />
 
@@ -211,7 +204,8 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* ── Floating chat demo ───────────────────────────────────── */}
+      {/* ── Floating widgets ─────────────────────────────────────── */}
+      <FloatingAaoiTicker />
       <FloatingChat />
     </div>
   );

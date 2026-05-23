@@ -1,5 +1,5 @@
 "use client";
-import { ExternalLink, Crown, Sparkles } from "lucide-react";
+import { ExternalLink, Sparkles } from "lucide-react";
 
 function XLogo({ size = 14 }: { size?: number }) {
   return (
@@ -16,11 +16,6 @@ export default function SerenitySection() {
 
         {/* Section header */}
         <div className="text-center mb-10">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full
-            text-[10px] font-mono tracking-widest uppercase mb-4"
-            style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24" }}>
-            <Crown size={11} /> The Oracle of AAOI
-          </span>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
             <span className="text-violet-100">Tracking</span>{" "}
             <span style={{

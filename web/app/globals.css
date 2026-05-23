@@ -111,6 +111,11 @@ html, body {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0; }
 }
+@keyframes candle-rise {
+  0%   { opacity: 0; transform: translateY(14px) scaleY(0.4); }
+  60%  { opacity: 0.9; }
+  100% { opacity: 1; transform: translateY(0) scaleY(1); }
+}
 @keyframes scanline {
   0%   { transform: translateY(-100%); }
   100% { transform: translateY(100vh); }
