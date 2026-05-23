@@ -6,15 +6,15 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "minios AI",
-  description: "An AI assistant running on a custom hobby OS kernel",
-  icons: { icon: "/favicon.ico" },
+  title: "AAOS Research",
+  description: "Autonomous AI OS — intelligence running inside a custom 32-bit OS kernel",
+  keywords: ["AI", "OS", "kernel", "research", "autonomous"],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#060412] text-[#e2d9f3]">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+      <body className="min-h-full flex flex-col" style={{ background: "#04020e", color: "#ede9fe" }}>
         {children}
       </body>
     </html>

@@ -32,8 +32,8 @@ export default function ChatMessage({ msg }: { msg: Message }) {
           : "bg-indigo-900/60 border border-indigo-500/40 pulse-glow"
         }`}>
         {isUser
-          ? <User size={14} className="text-violet-300" />
-          : <Bot size={14} className="text-indigo-300" />
+          ? <User size={13} className="text-violet-300" />
+          : <Bot size={13} className="text-indigo-300" />
         }
       </div>
 

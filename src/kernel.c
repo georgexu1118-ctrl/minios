@@ -1,5 +1,5 @@
 /*
- * minios — serial-bridge AI chat kernel
+ * aaos — serial-bridge AI chat kernel
  *
  * The kernel is a tiny terminal that speaks a line protocol over COM1 to a
  * host-side Python bridge, which talks to the OpenAI API:
@@ -100,8 +100,8 @@ static void serial_readline(char *buf, size_t max) {
 void kernel_main(void) {
     serial_init();
     vga_clear();
-    vga_puts_c("  minios :: serial-bridge AI chat\n", 0x0E);
-    vga_puts_c("  ---------------------------------\n", 0x08);
+    vga_puts_c("  AAOS :: Autonomous AI OS :: serial-bridge chat\n", 0x0E);
+    vga_puts_c("  ----------------------------------------------\n", 0x08);
     vga_puts  ("  COM1 linked to the host bridge. Type questions in the\n");
     vga_puts  ("  bridge console; answers appear here.\n\n");
 

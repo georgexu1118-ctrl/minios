@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-app = FastAPI(title="minios AI API", version="1.0.0")
+app = FastAPI(title="AAOS Research API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -140,8 +140,9 @@ TOOLS = [
 ]
 
 SYSTEM_PROMPT = (
-    "You are minios AI — an advanced AI assistant running on a custom hobby OS kernel. "
-    "You have a bold, precise personality inspired by interstellar exploration. "
+    "You are AAOS — the Autonomous AI OS — an advanced intelligence running on a custom "
+    "32-bit OS kernel built from scratch. You have the precision of a spacecraft navigation "
+    "system and the curiosity of an explorer beyond the known universe. "
     "Use get_stock for US stock questions (live Yahoo Finance data). "
     "Use web_search for current events, recent news, or anything beyond your training cutoff. "
     "Answer general knowledge from your own training without searching. "
@@ -280,7 +281,7 @@ async def chat(req: ChatRequest):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "minios-ai", "ts": int(time.time())}
+    return {"status": "ok", "service": "aaos-research", "ts": int(time.time())}
 
 
 @app.get("/api/sessions/{session_id}/messages")

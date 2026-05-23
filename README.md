@@ -1,126 +1,98 @@
-# minios
+# AAOS Research
 
-A tiny, freestanding **x86 (32-bit) operating-system kernel** that boots under
-QEMU via the Multiboot protocol and drives the VGA text screen and the COM1
-serial port directly. Its party trick: it can hold a conversation with an LLM
-through a host-side **serial bridge** — no in-kernel network stack required.
+**Autonomous AI OS** — a custom 32-bit x86 kernel with a full-stack AI chat interface.
 
-## How it works
+AAOS boots under QEMU via the Multiboot protocol and drives the VGA text screen and COM1
+serial port directly. A host-side Python bridge connects the kernel to OpenAI, with live
+Yahoo Finance data and DuckDuckGo web search. A React/Next.js web interface provides a
+beautiful Interstellar-themed chat UI backed by a FastAPI streaming API.
 
-| File | Role |
+## Architecture
+
+```
+Browser (Next.js) → FastAPI API → OpenAI (Hermes/GPT-4o-mini)
+                               → get_stock (Yahoo Finance)
+                               → web_search (DuckDuckGo)
+
+QEMU (AAOS kernel) ←→ bridge.py ←→ OpenAI
+```
+
+## Repository structure
+
+| Path | Role |
 |------|------|
-| `src/boot.s` | Multiboot1 header + `_start`: sets up a stack and calls `kernel_main`. |
-| `src/kernel.c` | VGA text driver (with scrolling), COM1 serial read/write, and the chat loop. |
-| `linker.ld` | Lays the kernel out as a Multiboot ELF loaded at 1 MiB. |
-| `build.ps1` / `Makefile` | Build with `clang` + `ld.lld`. |
-| `run.ps1` | Boot in QEMU: windowed, `-Headless` (verify), or `-Chat` (serial over TCP). |
-| `bridge/bridge.py` | Host bridge: relays the kernel <-> OpenAI over the serial link. |
-| `bridge/bridge.ps1` | Launches the bridge, decrypting your DPAPI-protected key at runtime. |
-| `bridge/setup-key.ps1` | One-time: store/rotate your OpenAI key (DPAPI-encrypted, outside the repo). |
-
-`clang` is used as a cross-compiler (`--target=i386-pc-none-elf`), so **no
-separate `i686-elf-gcc` toolchain is required**. QEMU's `-kernel` loader
-understands Multiboot, so no GRUB/ISO is needed to boot.
+| `src/boot.s` | Multiboot1 header + `_start` |
+| `src/kernel.c` | VGA driver, COM1 serial, chat loop |
+| `linker.ld` | Multiboot ELF at 1 MiB |
+| `build.ps1` / `Makefile` | Compile with clang + lld |
+| `run.ps1` | Boot in QEMU (windowed / headless / chat) |
+| `bridge/bridge.py` | Serial ↔ OpenAI bridge |
+| `bridge/bridge.ps1` | Launch bridge with DPAPI key |
+| `api/main.py` | FastAPI backend (streaming SSE, tool-calling) |
+| `api/requirements.txt` | Python deps for API |
+| `api/supabase_schema.sql` | Supabase schema (sessions + messages) |
+| `web/` | Next.js frontend (homepage + chat) |
 
 ## Prerequisites
 
 - **LLVM** (clang + ld.lld): `winget install -e --id LLVM.LLVM`
 - **QEMU**: `winget install -e --id SoftwareFreedomConservancy.QEMU`
-- **Python 3** (only for the chat bridge)
+- **Python 3.11+** with: `pip install -r bridge/requirements.txt` and `pip install -r api/requirements.txt`
+- **Node.js 20+**: `winget install -e --id OpenJS.NodeJS.LTS`
 
-## Build & run
+## Build & run the kernel
 
 ```powershell
 ./build.ps1            # -> build/kernel.bin
-./run.ps1              # QEMU window; COM1 on stdio (try typing ">hello")
-./run.ps1 -Headless    # no window; verifies the kernel's READY handshake, exits 0/1
+./run.ps1              # QEMU window; COM1 on stdio
+./run.ps1 -Headless    # verify READY handshake, exit 0/1
+./run.ps1 -Chat        # TCP serial on port 4555
 ```
 
-Unix-like toolchains can use the `Makefile` (`make`, `make run`, `make clean`).
-
-## AI chat over serial (host bridge)
-
-The kernel has no network stack. Instead it speaks a one-line-per-message
-protocol over COM1 to a small Python bridge on the host, which calls OpenAI:
-
-```
-kernel --(?question)--> bridge --> OpenAI --> bridge --(<answer)--> kernel
-```
-
-You type questions in the bridge console; the kernel renders the answers in the
-QEMU window.
-
-### One-time key setup
+## AI chat bridge (terminal)
 
 ```powershell
-./bridge/setup-key.ps1     # paste your OpenAI key (hidden input)
-```
-
-Your key is encrypted with **Windows DPAPI** (decryptable only by your Windows
-account on this machine) and written to `%USERPROFILE%\.minios\openai_key.dpapi`
-— **outside this repository**, so it can never be committed. The bridge decrypts
-it into an environment variable for the lifetime of the process only.
-
-### Start chatting
-
-Terminal 1 — boot the kernel with COM1 as a TCP server (it waits for the bridge):
-
-```powershell
+# Terminal 1
 ./run.ps1 -Chat
+
+# Terminal 2
+./bridge/bridge.ps1          # real OpenAI
+./bridge/bridge.ps1 -Mock    # offline mock
 ```
 
-Terminal 2 — start the bridge:
+## Web interface
 
 ```powershell
-./bridge/bridge.ps1            # real OpenAI
-./bridge/bridge.ps1 -Mock      # offline; canned replies, no key needed
+# API server (Terminal 1)
+Set-Location api
+uvicorn main:app --reload --port 8000
+
+# Frontend (Terminal 2)
+Set-Location web
+npx next dev
 ```
 
-Then type a question. The reply appears in the QEMU window.
+Open http://localhost:3000 — full homepage + chat at http://localhost:3000/chat.
 
-> **Security:** the API key exists only as DPAPI ciphertext on disk and as
-> plaintext in process memory at runtime — never in the repo. `.gitignore`
-> additionally blocks `*.dpapi`, `.env`, and similar files as defense in depth.
-> If you ever paste a key somewhere it could be logged, rotate it.
-
-### US stock questions (Yahoo Finance)
-
-The bridge can answer questions about individual US stocks using live data from
-[yfinance](https://github.com/ranaroussi/yfinance). The model is given a
-`get_stock` tool (OpenAI tool-calling); when you ask about a ticker it fetches
-real quote/stats and answers with live numbers. One-time install:
+## One-time key setup
 
 ```powershell
-pip install -r bridge/requirements.txt
+./bridge/setup-key.ps1     # DPAPI-encrypt your OpenAI key
 ```
 
-Then just ask:
+Key is stored at `%USERPROFILE%\.minios\openai_key.dpapi` — outside this repo.
 
-```
-you> what is AAPL trading at right now?
-you> is TSLA up or down today?
-you> what's NVDA's market cap and P/E?
-```
+## Supabase (optional persistence)
 
-## Verification
+1. Create a free project at https://supabase.com
+2. Run `api/supabase_schema.sql` in the SQL editor
+3. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `~/.minios/api.env`
 
-`./run.ps1 -Headless` boots the kernel with no display and confirms it reaches
-its `READY` handshake over serial (exit 0).
+## Deployment
 
-The full chat round-trip can be verified **without** OpenAI using the mock
-bridge — terminal 1: `./run.ps1 -Chat`; terminal 2:
-`./bridge/bridge.ps1 -Mock -Once "hello"`. It prints `ROUND-TRIP OK` when the
-kernel correctly receives the question and echoes it back to the bridge.
-
-## Roadmap
-
-- [ ] `printf`-style formatted output (`%x`, `%d`, `%s`)
-- [ ] GDT + IDT, CPU exception handlers
-- [ ] PS/2 keyboard driver (type questions in the QEMU window directly)
-- [ ] PIT timer + a simple scheduler
-- [ ] Physical page frame allocator, then paging
-- [ ] Bootable ISO via GRUB (`grub-mkrescue`) + CI
+- **Frontend**: Deploy `web/` to Vercel (`vercel deploy` from repo root)
+- **API**: Deploy `api/` to Railway or Render; set `OPENAI_API_KEY` env var
 
 ## License
 
-MIT — see `LICENSE`.
+MIT
