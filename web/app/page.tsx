@@ -92,7 +92,7 @@ export default function HomePage() {
           <div className="animate-fade-in-delay-4 flex flex-wrap gap-6 justify-center mt-2">
             {[
               { val: "32-bit", label: "x86 Kernel" },
-              { val: "< 50ms", label: "First Token" },
+              { val: "Edge", label: "Runtime" },
               { val: "Live", label: "Market Data" },
               { val: "OSS", label: "Open Source" },
             ].map(m => (
