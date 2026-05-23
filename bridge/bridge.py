@@ -208,29 +208,65 @@ SYSTEM_PROMPT = (
 # --------------------------------------------------------------------------- #
 # OpenAI chat with tool-calling
 # --------------------------------------------------------------------------- #
-def _chat(key, model, messages, tools=None):
+# --------------------------------------------------------------------------- #
+# Provider registry — same OpenAI Chat Completions wire format across all.
+# Selected with --provider {openai,hermes,gpt-oss}. Each provider has its own
+# env var so users can mix and match without overwriting keys.
+# --------------------------------------------------------------------------- #
+PROVIDERS = {
+    "openai": {
+        "base_url": "https://api.openai.com/v1/chat/completions",
+        "env":      "OPENAI_API_KEY",
+        "default_model": "gpt-4o-mini",
+        "label":    "OpenAI (closed)",
+    },
+    "hermes": {
+        # Nous Research's Hermes 4 70B via OpenRouter (OpenAI-compatible).
+        "base_url": "https://openrouter.ai/api/v1/chat/completions",
+        "env":      "OPENROUTER_API_KEY",
+        "default_model": "nousresearch/hermes-4-70b",
+        "label":    "Hermes 4 70B (Nous Research, open)",
+        "extra_headers": {
+            "HTTP-Referer": "https://aaos-research.vercel.app",
+            "X-Title":      "AAOS Kernel Bridge",
+        },
+    },
+    "gpt-oss": {
+        # OpenAI's open-weight 20B via Groq for lowest latency.
+        "base_url": "https://api.groq.com/openai/v1/chat/completions",
+        "env":      "GROQ_API_KEY",
+        "default_model": "openai/gpt-oss-20b",
+        "label":    "GPT-OSS 20B via Groq (open)",
+    },
+}
+
+
+def _chat(provider_key, key, model, messages, tools=None):
+    provider = PROVIDERS[provider_key]
     payload = {"model": model, "messages": messages,
                "temperature": 0.3, "max_tokens": 320}
     if tools:
         payload["tools"] = tools
+    headers = {"Authorization": "Bearer " + key,
+               "Content-Type": "application/json"}
+    headers.update(provider.get("extra_headers", {}))
     req = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
+        provider["base_url"],
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Authorization": "Bearer " + key,
-                 "Content-Type": "application/json"},
+        headers=headers,
         method="POST")
     with urllib.request.urlopen(req, timeout=40) as r:
         return json.loads(r.read().decode("utf-8"))
 
 
-def ask_openai(key, question, model):
+def ask_openai(key, question, model, provider_key="openai"):
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": question},
     ]
     try:
         for _ in range(4):  # allow a few tool-call rounds
-            resp = _chat(key, model, messages, tools=[STOCK_TOOL, WEB_TOOL])
+            resp = _chat(provider_key, key, model, messages, tools=[STOCK_TOOL, WEB_TOOL])
             msg = resp["choices"][0]["message"]
             calls = msg.get("tool_calls")
             if not calls:
@@ -254,15 +290,16 @@ def ask_openai(key, question, model):
                                  "content": json.dumps(result, default=str)})
         return msg.get("content") or "[stopped after tool rounds]"
     except urllib.error.HTTPError as e:
-        return f"[openai http {e.code}: {e.read().decode('utf-8', 'replace')[:160]}]"
+        return f"[{provider_key} http {e.code}: {e.read().decode('utf-8', 'replace')[:160]}]"
     except Exception as e:  # noqa: BLE001
         return f"[bridge error: {e}]"
 
 
 def reply_for(args, key, question):
     if args.mock:
-        return f"[mock] you asked: {question} -- minios is a 32-bit Multiboot kernel."
-    return sanitize(ask_openai(key, question, args.model))
+        return f"[mock] you asked: {question} -- AAOS is a 32-bit Multiboot kernel."
+    model = args.model or PROVIDERS[args.provider]["default_model"]
+    return sanitize(ask_openai(key, question, model, provider_key=args.provider))
 
 
 # --------------------------------------------------------------------------- #
@@ -297,25 +334,31 @@ def turn(link, args, key, question):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="minios serial <-> OpenAI bridge")
+    ap = argparse.ArgumentParser(description="AAOS serial <-> LLM bridge")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=4555)
-    ap.add_argument("--model", default="gpt-4o-mini")
+    ap.add_argument("--provider", choices=list(PROVIDERS.keys()), default="openai",
+                    help="LLM provider: openai (gpt-4o-mini), hermes (Nous Hermes 4 70B via OpenRouter), "
+                         "gpt-oss (OpenAI gpt-oss-20b via Groq)")
+    ap.add_argument("--model", default=None,
+                    help="override model id (defaults to provider's recommended model)")
     ap.add_argument("--mock", action="store_true",
-                    help="don't call OpenAI; return a canned reply (no key needed)")
+                    help="don't call any LLM; return a canned reply (no key needed)")
     ap.add_argument("--once", metavar="QUESTION",
                     help="run one question then exit (for testing)")
     args = ap.parse_args()
 
-    key = os.environ.get("OPENAI_API_KEY", "")
+    provider = PROVIDERS[args.provider]
+    key = os.environ.get(provider["env"], "")
     if not args.mock and not key:
         raise SystemExit(
-            "OPENAI_API_KEY not set. Run via bridge.ps1 (decrypts your DPAPI "
-            "key), or pass --mock.")
+            f"{provider['env']} not set for provider '{args.provider}' ({provider['label']}). "
+            f"Export the key or pass --mock.")
 
+    model = args.model or provider["default_model"]
     link = SerialLink(args.host, args.port)
     log(f"connected to kernel at {args.host}:{args.port}"
-        + (" [MOCK]" if args.mock else f" [model={args.model}, +yfinance]"))
+        + (" [MOCK]" if args.mock else f" [provider={args.provider}, model={model}, +yfinance]"))
     wait_for_ready(link)
 
     if args.once is not None:

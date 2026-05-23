@@ -40,7 +40,7 @@ export default function HomePage() {
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
               glass border-violet-700/30 text-[11px] font-mono tracking-widest text-violet-400/80">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-              AAOS v1.0 · Kernel Active · Hermes Integrated
+              AAOS v1.1 · Kernel Active · Hermes 4 · GPT-OSS · GPT-4o
             </span>
           </div>
 
