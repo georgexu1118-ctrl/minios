@@ -49,12 +49,17 @@ export default function HomePage() {
 
           {/* Headline */}
           <div className="animate-fade-in-delay-2 space-y-3">
-            <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]">
               <span className="text-gradient">Intelligence</span>
               <br />
               <span className="text-violet-100">Beyond the</span>
               <br />
-              <span className="text-gradient-gold">Known Universe</span>
+              <span style={{
+                background: "linear-gradient(135deg, #22d3ee 0%, #818cf8 55%, #c084fc 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}>Known Universe</span>
             </h1>
           </div>
 
@@ -126,6 +131,50 @@ export default function HomePage() {
               btn-shimmer text-white font-semibold tracking-wide text-base">
             Open Full Chat Interface <ArrowRight size={17} />
           </Link>
+        </div>
+      </section>
+
+      {/* ── INSPIRATION ─────────────────────────────────────────── */}
+      <section className="py-20 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="glass rounded-3xl overflow-hidden animate-fade-in-delay-2"
+            style={{ border: "1px solid rgba(34,211,238,0.15)" }}>
+
+            {/* Chart image */}
+            <div className="relative">
+              <img
+                src="/aaoi-chart.png"
+                alt="AAOI stock chart showing 420% YTD rise in 2026"
+                className="w-full object-cover"
+                style={{ maxHeight: "340px", objectPosition: "center top" }}
+              />
+              {/* Gradient fade at bottom of image into the card */}
+              <div className="absolute bottom-0 inset-x-0 h-24 pointer-events-none"
+                style={{ background: "linear-gradient(to bottom, transparent, rgba(8,4,28,0.95))" }}
+              />
+            </div>
+
+            {/* Caption */}
+            <div className="px-6 pb-6 -mt-2 relative">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-mono
+                  tracking-widest uppercase"
+                  style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.25)", color: "#22d3ee" }}>
+                  Origin
+                </span>
+                <p className="text-sm leading-relaxed"
+                  style={{ color: "rgba(196,181,253,0.75)" }}>
+                  The name <span className="font-semibold text-cyan-300">AAOS</span> is inspired by{" "}
+                  <span className="font-semibold text-white">AAOI</span> — Applied Optoelectronics Inc
+                  (NASDAQ: AAOI) — the infamous tech stock that made headlines in 2026 due to its{" "}
+                  <span className="font-semibold"
+                    style={{ background: "linear-gradient(90deg,#4ade80,#22d3ee)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                    explosive +420% YTD rise.
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
