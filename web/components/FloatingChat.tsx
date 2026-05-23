@@ -9,7 +9,7 @@ interface Msg { id: string; role: "user" | "assistant"; content: string; streami
 const API_BASE = "";
 
 const DEMO_HINTS = [
-  "What is AAPL trading at?",
+  "What is AAOI trading at?",
   "Latest AI news?",
   "How does a black hole form?",
 ];

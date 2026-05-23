@@ -6,9 +6,11 @@ import Navbar from "@/components/Navbar";
 import NebulaLayers from "@/components/NebulaLayers";
 import FeaturesSection from "@/components/FeaturesSection";
 import FloatingChat from "@/components/FloatingChat";
+import SerenitySection from "@/components/SerenitySection";
 
-const StarField    = dynamic(() => import("@/components/StarField"),    { ssr: false });
-const WormholeOrb  = dynamic(() => import("@/components/WormholeOrb"), { ssr: false });
+const StarField     = dynamic(() => import("@/components/StarField"),     { ssr: false });
+const WormholeOrb   = dynamic(() => import("@/components/WormholeOrb"),   { ssr: false });
+const LiveAaoiChart = dynamic(() => import("@/components/LiveAaoiChart"), { ssr: false });
 
 export default function HomePage() {
   return (
@@ -164,12 +166,13 @@ export default function HomePage() {
                 </span>
                 <p className="text-sm leading-relaxed"
                   style={{ color: "rgba(196,181,253,0.75)" }}>
-                  The name <span className="font-semibold text-cyan-300">AAOS</span> is inspired by{" "}
-                  <span className="font-semibold text-white">AAOI</span> — Applied Optoelectronics Inc
-                  (NASDAQ: AAOI) — the infamous tech stock that made headlines in 2026 due to its{" "}
+                  The name <span className="font-semibold text-cyan-300">AAOS</span> is inspired by the
+                  infamous tech stock{" "}
+                  <span className="font-semibold text-white">AAOI</span>{" "}
+                  (Applied Optoelectronics) that made headlines in 2026 due to its{" "}
                   <span className="font-semibold"
                     style={{ background: "linear-gradient(90deg,#4ade80,#22d3ee)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                    explosive +420% YTD rise.
+                    explosive rise.
                   </span>
                 </p>
               </div>
@@ -177,6 +180,16 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── LIVE AAOI CHART ──────────────────────────────────────── */}
+      <section className="py-12 px-4">
+        <div className="max-w-4xl mx-auto">
+          <LiveAaoiChart />
+        </div>
+      </section>
+
+      {/* ── SERENITY TRACKER ─────────────────────────────────────── */}
+      <SerenitySection />
 
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer className="glass border-t py-8 px-4"
@@ -186,6 +199,9 @@ export default function HomePage() {
           <span className="font-mono tracking-widest">AAOS RESEARCH © 2026</span>
           <div className="flex gap-6">
             <Link href="/chat" className="hover:text-violet-300 transition-colors">Chat</Link>
+            <a href="https://x.com/aleabitoreddit"
+              target="_blank" rel="noopener noreferrer"
+              className="hover:text-amber-300 transition-colors">Serenity</a>
             <a href="https://github.com/georgexu1118-ctrl/aaos"
               target="_blank" rel="noopener noreferrer"
               className="hover:text-violet-300 transition-colors">GitHub</a>

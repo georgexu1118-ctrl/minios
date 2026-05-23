@@ -6,44 +6,93 @@ import OpenAI from "openai";
 // ---------------------------------------------------------------------------
 // Tools
 // ---------------------------------------------------------------------------
+// Yahoo Finance v8 chart endpoint — works without auth/cookies (unlike v7 quote).
+// Returns meta block with current price, 52w high/low, day range, and a YTD time-series
+// from which we compute YTD %.
 async function getStock(symbol: string): Promise<Record<string, unknown>> {
   symbol = (symbol ?? "").trim().toUpperCase();
   if (!symbol) return { error: "no symbol given" };
-  try {
-    // Use Yahoo Finance v7 quote endpoint directly — avoids module typing issues
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`;
+
+  const fetchChart = async (range: string, interval: string) => {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&includePrePost=false`;
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0" },
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
       cache: "no-store",
     });
-    const data = await res.json() as {
-      quoteResponse?: {
-        result?: Array<Record<string, unknown>>;
-        error?: unknown;
+    if (!res.ok) return null;
+    return res.json() as Promise<{
+      chart?: {
+        result?: Array<{
+          meta?: Record<string, unknown> & {
+            regularMarketPrice?: number;
+            chartPreviousClose?: number;
+            previousClose?: number;
+            currency?: string;
+            symbol?: string;
+            exchangeName?: string;
+            longName?: string;
+            shortName?: string;
+            fiftyTwoWeekHigh?: number;
+            fiftyTwoWeekLow?: number;
+            regularMarketDayHigh?: number;
+            regularMarketDayLow?: number;
+            regularMarketVolume?: number;
+          };
+          timestamp?: number[];
+          indicators?: { quote?: Array<{ close?: (number | null)[]; open?: (number | null)[] }> };
+        }>;
+        error?: { code?: string; description?: string };
       };
-    };
-    const r = data?.quoteResponse?.result?.[0];
-    if (!r) return { error: `no data for "${symbol}"` };
-    const last = r.regularMarketPrice as number | undefined;
-    const prev = r.regularMarketPreviousClose as number | undefined;
+    }>;
+  };
+
+  try {
+    // 1-day chart for current price + day range
+    const day = await fetchChart("1d", "5m");
+    const dayResult = day?.chart?.result?.[0];
+    if (!dayResult) {
+      const code = day?.chart?.error?.code ?? "unknown";
+      return { error: `no data for "${symbol}" (${code})` };
+    }
+    const meta = dayResult.meta ?? {};
+    const last = meta.regularMarketPrice;
+    const prev = meta.chartPreviousClose ?? meta.previousClose;
+
+    // YTD chart to compute year-to-date %
+    let ytdPct: number | undefined;
+    const ytd = await fetchChart("ytd", "1d");
+    const ytdPoints = ytd?.chart?.result?.[0];
+    if (ytdPoints?.indicators?.quote?.[0]?.close && ytdPoints.timestamp?.length) {
+      const closes = (ytdPoints.indicators.quote[0].close ?? []).filter(c => typeof c === "number") as number[];
+      if (closes.length > 1 && last) {
+        ytdPct = +(((last - closes[0]) / closes[0]) * 100).toFixed(2);
+      }
+    }
+
+    const change = (last != null && prev != null) ? +(last - prev).toFixed(2) : undefined;
+    const changePct = (last != null && prev) ? +(((last - prev) / prev) * 100).toFixed(2) : undefined;
+
+    // Open from first 5m bar of the session
+    const openArr = dayResult.indicators?.quote?.[0]?.open ?? [];
+    const open = openArr.find(v => typeof v === "number") ?? undefined;
+
     return {
-      symbol,
-      currency: r.currency,
+      symbol: meta.symbol ?? symbol,
+      name: meta.longName ?? meta.shortName,
+      exchange: meta.exchangeName,
+      currency: meta.currency,
       last_price: last,
       previous_close: prev,
-      open: r.regularMarketOpen,
-      day_high: r.regularMarketDayHigh,
-      day_low: r.regularMarketDayLow,
-      year_high: r.fiftyTwoWeekHigh,
-      year_low: r.fiftyTwoWeekLow,
-      change: r.regularMarketChange,
-      change_pct: typeof r.regularMarketChangePercent === "number"
-        ? +((r.regularMarketChangePercent as number) * 100).toFixed(2)
-        : undefined,
-      market_cap: r.marketCap,
-      short_name: r.shortName,
-      long_name: r.longName,
-      trailing_pe: r.trailingPE,
+      open,
+      change,
+      change_pct: changePct,
+      day_high: meta.regularMarketDayHigh,
+      day_low: meta.regularMarketDayLow,
+      year_high: meta.fiftyTwoWeekHigh,
+      year_low: meta.fiftyTwoWeekLow,
+      volume: meta.regularMarketVolume,
+      ytd_pct: ytdPct,
+      source: "yahoo finance v8 chart",
     };
   } catch (e) {
     return { error: String(e) };
@@ -132,20 +181,43 @@ const SYSTEM_PROMPT =
   "Be concise, accurate, and confident. Prefer bullet points for multi-part answers.";
 
 // ---------------------------------------------------------------------------
+// Model registry — closed vs open-weight routing
+// ---------------------------------------------------------------------------
+// "gpt-4o-mini"   → OpenAI proprietary (closed weights, cheapest)
+// "gpt-oss-120b"  → OpenAI open-weight model hosted on Together AI
+// Both speak the OpenAI Chat Completions protocol, so we just swap baseURL/key.
+const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string }> = {
+  "gpt-4o-mini": {
+    apiKeyEnv: "OPENAI_API_KEY",
+    modelId: "gpt-4o-mini",
+  },
+  "gpt-oss-120b": {
+    apiKeyEnv: "TOGETHER_API_KEY",
+    baseURL: "https://api.together.xyz/v1",
+    modelId: "openai/gpt-oss-120b",
+  },
+};
+
+// ---------------------------------------------------------------------------
 // POST /api/chat  — streaming SSE
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const body = await req.json() as { messages: { role: string; content: string }[]; model?: string };
+  const requested = body.model ?? "gpt-4o-mini";
+  const config = MODELS[requested] ?? MODELS["gpt-4o-mini"];
+
+  const apiKey = process.env[config.apiKeyEnv];
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "OPENAI_API_KEY not configured" }), {
+    const friendly = config.apiKeyEnv === "TOGETHER_API_KEY"
+      ? "gpt-oss-120b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel."
+      : `${config.apiKeyEnv} not configured`;
+    return new Response(JSON.stringify({ error: friendly }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
 
-  const body = await req.json() as { messages: { role: string; content: string }[]; model?: string };
-  const model = body.model ?? "gpt-4o-mini";
-
-  const openai = new OpenAI({ apiKey });
+  const model = config.modelId;
+  const openai = new OpenAI({ apiKey, baseURL: config.baseURL });
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: SYSTEM_PROMPT },
     ...(body.messages ?? []).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
