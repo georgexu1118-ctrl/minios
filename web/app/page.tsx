@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, ExternalLink } from "lucide-react";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import NebulaLayers from "@/components/NebulaLayers";
 import FloatingChat from "@/components/FloatingChat";
@@ -41,6 +42,42 @@ export default function HomePage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
               AAOS v1.1 · Kernel Active · GPT-OSS · GPT-4o
             </span>
+          </div>
+
+          {/* Galileo Moon logo medallion */}
+          <div className="animate-fade-in relative">
+            <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden mx-auto"
+              style={{
+                boxShadow:
+                  "0 0 30px rgba(139,92,246,0.55), 0 0 60px rgba(124,58,237,0.25), 0 0 100px rgba(88,28,235,0.12)",
+                border: "1.5px solid rgba(139,92,246,0.55)",
+              }}>
+              <Image
+                src="/galileo-moon.webp"
+                alt="AAOS — Galileo's Moon"
+                width={112}
+                height={112}
+                className="w-full h-full object-cover object-top"
+                style={{
+                  filter: "sepia(1) hue-rotate(222deg) saturate(2.0) brightness(0.68) contrast(1.3)",
+                  transform: "scale(1.06)",
+                }}
+                priority
+              />
+              <div className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ background: "rgba(88,28,235,0.16)", mixBlendMode: "multiply" }} />
+            </div>
+            {/* outer pulse ring */}
+            <div className="absolute inset-0 rounded-full pointer-events-none animate-pulse-ring"
+              style={{
+                border: "1px solid rgba(139,92,246,0.22)",
+                transform: "scale(1.18)",
+                top: 0, left: 0, right: 0, bottom: 0,
+                margin: "auto",
+                width: "100%",
+                height: "100%",
+              }}
+            />
           </div>
 
           {/* Wormhole orb */}

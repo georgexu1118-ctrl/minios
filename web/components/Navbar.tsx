@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, Cpu } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Image from "next/image";
 
 const NAV = [
   { href: "/", label: "Research" },
@@ -21,10 +22,27 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center
-            bg-violet-800/50 border border-violet-500/40 group-hover:border-violet-400/70
-            transition-colors duration-200 animate-pulse-glow">
-            <Cpu size={13} className="text-violet-300" />
+          {/* Galileo moon engraving — tinted violet to blend with cosmic theme */}
+          <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+            style={{
+              boxShadow: "0 0 10px rgba(139,92,246,0.45), 0 0 20px rgba(124,58,237,0.20)",
+              border: "1px solid rgba(139,92,246,0.45)",
+            }}>
+            <Image
+              src="/galileo-moon.webp"
+              alt="AAOS"
+              width={32}
+              height={32}
+              className="w-full h-full object-cover object-top"
+              style={{
+                filter: "sepia(1) hue-rotate(222deg) saturate(2.2) brightness(0.72) contrast(1.25)",
+                transform: "scale(1.08)",
+              }}
+              priority
+            />
+            {/* Subtle violet overlay to deepen blend */}
+            <div className="absolute inset-0 rounded-full pointer-events-none"
+              style={{ background: "rgba(88,28,235,0.18)", mixBlendMode: "multiply" }} />
           </div>
           <span className="text-sm font-bold tracking-[0.15em] uppercase text-gradient">
             AAOS
