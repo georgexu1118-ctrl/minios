@@ -81,15 +81,17 @@ export default function ChatMessage({ msg }: { msg: Message }) {
               {msg.content}
               {msg.streaming && <span className="cursor-blink" />}
             </>
+          ) : msg.streaming ? (
+            // Plain text while streaming — avoids ReactMarkdown/KaTeX re-parsing
+            // every token, which causes visible flicker and layout shifts.
+            // Snaps to full formatted output once the stream completes.
+            <span className="whitespace-pre-wrap">{msg.content}<span className="cursor-blink" /></span>
           ) : (
-            <>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}>
-                {normalizeMath(msg.content)}
-              </ReactMarkdown>
-              {msg.streaming && <span className="cursor-blink" />}
-            </>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}>
+              {normalizeMath(msg.content)}
+            </ReactMarkdown>
           )}
         </div>
       </div>
