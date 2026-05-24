@@ -7,6 +7,7 @@ import NebulaLayers from "@/components/NebulaLayers";
 import FeaturesSection from "@/components/FeaturesSection";
 import FloatingChat from "@/components/FloatingChat";
 import SerenitySection from "@/components/SerenitySection";
+import NousPlanet from "@/components/NousPlanet";
 
 const StarField           = dynamic(() => import("@/components/StarField"),           { ssr: false });
 const WormholeOrb         = dynamic(() => import("@/components/WormholeOrb"),         { ssr: false });
@@ -183,6 +184,9 @@ export default function HomePage() {
 
       {/* ── SERENITY TRACKER ─────────────────────────────────────── */}
       <SerenitySection />
+
+      {/* ── PLANET ───────────────────────────────────────────────── */}
+      <NousPlanet />
 
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer className="glass border-t py-8 px-4"

@@ -128,6 +128,14 @@ html, body {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0);    }
 }
+@keyframes planet-bands-scroll {
+  from { background-position: 0% 50%; }
+  to   { background-position: 200% 50%; }
+}
+@keyframes planet-glow-pulse {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50%       { opacity: 1;    transform: scale(1.018); }
+}
 
 /* ── Animation classes ───────────────────────────────────────────── */
 .animate-spin-slow          { animation: spin-slow 25s linear infinite; }
@@ -145,6 +153,10 @@ html, body {
 .animate-fade-in-delay-3    { animation: fadeIn 0.8s ease 0.5s  both; }
 .animate-fade-in-delay-4    { animation: fadeIn 0.8s ease 0.7s  both; }
 .msg-enter                  { animation: msgIn 0.3s ease forwards; }
+
+/* ── Nous-style planet ───────────────────────────────────────────── */
+.planet-bands  { animation: planet-bands-scroll 30s linear infinite; }
+.planet-glow-ring { animation: planet-glow-pulse 6s ease-in-out infinite; }
 
 /* Cursor blink */
 .cursor-blink {
