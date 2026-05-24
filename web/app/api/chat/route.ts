@@ -268,12 +268,20 @@ const EDU_PROVIDERS: ProviderConfig[] = [
   { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", mode: "educational" },
 ];
 
-// General layer (gpt-4o-mini selected): OpenAI primary, Together + Groq backups.
+// General layer — ordered by speed. Groq LPU first (280 tok/s vs OpenAI ~80 tok/s).
+// OPENAI_FINETUNE_MODEL env var: set to a fine-tuned model ID (ft:gpt-4o-mini-...) to
+// automatically upgrade the OpenAI slot to the specialised model with a shorter prompt.
+const _ftModel = process.env.OPENAI_FINETUNE_MODEL;
 const GENERAL_PROVIDERS: ProviderConfig[] = [
-  { apiKeyEnv: "OPENAI_API_KEY",   modelId: "gpt-4o-mini", mode: "general" },
-  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "general" },
-  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", mode: "general" },
-  { apiKeyEnv: "GROQ_API_KEY",    baseURL: "https://api.groq.com/openai/v1", modelId: "llama-3.3-70b-versatile", mode: "general" },
+  // Groq LPU — 280 tok/s, full tool-use support, same quality as gpt-4o-mini for most tasks
+  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "llama-3.3-70b-versatile",                       mode: "general" },
+  // Groq ultra-fast fallback — 560 tok/s, lighter weight
+  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "llama-3.1-8b-instant",                           mode: "general" },
+  // OpenAI — fine-tuned model when available, else gpt-4o-mini
+  { apiKeyEnv: "OPENAI_API_KEY",    modelId: _ftModel ?? "gpt-4o-mini",              mode: "general" },
+  // Together AI fallbacks
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",          modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct",       mode: "general" },
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",          modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",    mode: "general" },
 ];
 
 // Vision layer: Groq LPU first (fastest), Together AI fallback.
