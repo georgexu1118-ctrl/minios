@@ -33,9 +33,9 @@ const MODELS = [
   },
   {
     id: "gpt-oss-20b",
-    label: "GPT-OSS 20B",
+    label: "Llama 3.3 70B",
     role: "Educational",
-    desc: "OpenAI open weights · schoolwork, screenshot problem solving, flashcards",
+    desc: "Meta open weights · Groq LPU · schoolwork, screenshot problem solving, flashcards",
     accent: "emerald",
   },
 ] as const;
@@ -282,8 +282,8 @@ export default function ChatPage() {
                 </p>
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
                   Pick <span className="text-white font-semibold">Llama 3.3 70B</span> (Groq LPU, general) or
-                  <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork).
-                  GPT-OSS supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
+                  <span className="text-white font-semibold"> Llama 3.3 70B</span> (educational, schoolwork).
+                  Educational mode supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
                 </p>
               </div>
 
@@ -320,7 +320,7 @@ export default function ChatPage() {
             onPdfChange={setPdf}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · Llama 3.3 70B · GPT-OSS 20B · Screenshots · Flashcards · Live Web
+            AAOS Research · Llama 3.3 70B · Groq LPU · Screenshots · Flashcards · Live Web
           </p>
         </div>
       </footer>
