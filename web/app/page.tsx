@@ -5,7 +5,7 @@ import { ArrowRight, ChevronDown, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import NebulaLayers from "@/components/NebulaLayers";
 import FloatingChat from "@/components/FloatingChat";
-import PlutoMuseum from "@/components/PlutoMuseum";
+import NeptuneMuseum from "@/components/NeptuneMuseum";
 
 const StarField           = dynamic(() => import("@/components/StarField"),           { ssr: false });
 const WormholeOrb         = dynamic(() => import("@/components/WormholeOrb"),         { ssr: false });
@@ -177,8 +177,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── PLUTO MUSEUM ─────────────────────────────────────────── */}
-      <PlutoMuseum />
+      {/* ── NEPTUNE MUSEUM ───────────────────────────────────────── */}
+      <NeptuneMuseum />
 
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer className="glass border-t py-8 px-4"
