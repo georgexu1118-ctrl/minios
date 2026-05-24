@@ -254,31 +254,33 @@ type ProviderConfig = {
   mode: "general" | "educational" | "vision";
 };
 
-// Educational layer — Llama 3.3 70B on Groq LPU (same backbone as general, educational system prompt).
+// Educational layer (gpt-oss-20b selected): Groq LPU first (fastest, 1000 tok/s), Together AI fallback.
 const EDU_PROVIDERS: ProviderConfig[] = [
-  // Groq LPU — 280 tok/s, full tool-use support
-  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",          modelId: "llama-3.3-70b-versatile",                          mode: "educational" },
-  // Groq lighter fallback — 560 tok/s
-  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",          modelId: "llama-3.1-8b-instant",                              mode: "educational" },
-  // Together AI fallbacks
-  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct",         mode: "educational" },
-  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",       mode: "educational" },
+  // Groq LPU — confirmed live for gpt-oss-20b at ~1000 tok/s
+  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",          modelId: "openai/gpt-oss-20b", mode: "educational" },
+  // Fireworks AI fallback (add FIREWORKS_API_KEY to enable)
+  { apiKeyEnv: "FIREWORKS_API_KEY", baseURL: "https://api.fireworks.ai/inference/v1",    modelId: "accounts/fireworks/models/gpt-oss-20b", mode: "educational" },
+  // Together AI native gpt-oss-20b
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "openai/gpt-oss-20b", mode: "educational" },
+  // Last-resort Llama fallbacks
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "educational" },
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", mode: "educational" },
 ];
 
-// General layer — ordered by speed. Groq LPU first (280 tok/s vs OpenAI ~80 tok/s).
-// OPENAI_FINETUNE_MODEL env var: set to a fine-tuned model ID (ft:gpt-4o-mini-...) to
-// automatically upgrade the OpenAI slot to the specialised model with a shorter prompt.
+// General layer — Kimi K2 (Moonshot AI 1T MoE) on Groq LPU. Underrated frontier model
+// with insane Groq throughput (~200 tok/s on a 1T-parameter MoE).
+// OPENAI_FINETUNE_MODEL env var: set to a fine-tuned model ID to swap into the OpenAI slot.
 const _ftModel = process.env.OPENAI_FINETUNE_MODEL;
 const GENERAL_PROVIDERS: ProviderConfig[] = [
-  // Groq LPU — 280 tok/s, full tool-use support, same quality as gpt-4o-mini for most tasks
-  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "llama-3.3-70b-versatile",                       mode: "general" },
-  // Groq ultra-fast fallback — 560 tok/s, lighter weight
-  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "llama-3.1-8b-instant",                           mode: "general" },
-  // OpenAI — fine-tuned model when available, else gpt-4o-mini
+  // Kimi K2 (Moonshot AI) on Groq LPU — 1T-parameter MoE, frontier reasoning, full tool use
+  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "moonshotai/kimi-k2-instruct",                    mode: "general" },
+  // Groq Llama 3.3 70B fallback — 280 tok/s
+  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "llama-3.3-70b-versatile",                        mode: "general" },
+  // OpenAI fine-tuned (when available) or gpt-4o-mini
   { apiKeyEnv: "OPENAI_API_KEY",    modelId: _ftModel ?? "gpt-4o-mini",              mode: "general" },
   // Together AI fallbacks
-  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",          modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct",       mode: "general" },
-  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",          modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",    mode: "general" },
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",          modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct",      mode: "general" },
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",          modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",   mode: "general" },
 ];
 
 // Vision layer: Groq LPU first (fastest), Together AI fallback.

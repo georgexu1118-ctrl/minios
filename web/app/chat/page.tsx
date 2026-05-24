@@ -26,16 +26,16 @@ const SUGGESTED = [
 const MODELS = [
   {
     id: "gpt-4o-mini",
-    label: "Llama 3.3 70B",
+    label: "Kimi K2",
     role: "General",
-    desc: "Meta open weights · Groq LPU · stocks, news, code, everyday Q&A",
+    desc: "Moonshot AI · 1T-param MoE on Groq LPU · stocks, news, code, frontier reasoning",
     accent: "violet",
   },
   {
     id: "gpt-oss-20b",
-    label: "Llama 3.3 70B",
+    label: "GPT-OSS 20B",
     role: "Educational",
-    desc: "Meta open weights · Groq LPU · schoolwork, screenshot problem solving, flashcards",
+    desc: "OpenAI open weights · ~1000 tok/s · schoolwork, screenshot problem solving, flashcards",
     accent: "emerald",
   },
 ] as const;
@@ -52,9 +52,27 @@ export default function ChatPage() {
   const [image, setImage] = useState<string | null>(null);
   const [pdf, setPdf] = useState<PdfAttachment | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLElement>(null);
+  const stickToBottomRef = useRef(true);
+
+  // Only auto-scroll when the user is already near the bottom — prevents
+  // streaming tokens from yanking the viewport while the user is reading higher up.
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      stickToBottomRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!stickToBottomRef.current) return;
+    // Instant scroll prevents the jitter caused by overlapping smooth scrolls
+    // during token streaming.
+    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [messages]);
 
   const send = useCallback(async (question?: string) => {
@@ -255,7 +273,7 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <main className="relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-8 min-h-0">
+      <main ref={scrollContainerRef} className="relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-8 min-h-0">
         <div className="max-w-3xl mx-auto">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center min-h-[55vh] text-center gap-8">
@@ -281,9 +299,9 @@ export default function ChatPage() {
                   current events, science, or anything in the universe.
                 </p>
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
-                  Pick <span className="text-white font-semibold">Llama 3.3 70B</span> (Groq LPU, general) or
-                  <span className="text-white font-semibold"> Llama 3.3 70B</span> (educational, schoolwork).
-                  Educational mode supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
+                  Pick <span className="text-white font-semibold">Kimi K2</span> (Moonshot, frontier reasoning) or
+                  <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork).
+                  GPT-OSS supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
                 </p>
               </div>
 
@@ -320,7 +338,7 @@ export default function ChatPage() {
             onPdfChange={setPdf}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · Llama 3.3 70B · Groq LPU · Screenshots · Flashcards · Live Web
+            AAOS Research · Kimi K2 · GPT-OSS 20B · Screenshots · Flashcards · Live Web
           </p>
         </div>
       </footer>

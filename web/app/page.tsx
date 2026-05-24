@@ -40,7 +40,7 @@ export default function HomePage() {
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
               glass border-violet-700/30 text-[11px] font-mono tracking-widest text-violet-400/80">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-              AAOS v1.1 · Kernel Active · Llama 3.3 · GPT-OSS
+              AAOS v1.1 · Kernel Active · Kimi K2 · GPT-OSS
             </span>
           </div>
 

@@ -27,9 +27,26 @@ export default function FloatingChat() {
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => uuidv4());
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+
+  // Track whether the user is at the bottom so streaming doesn't fight a manual scroll.
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      stickToBottomRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [open]);
 
   useEffect(() => {
-    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!open || !stickToBottomRef.current) return;
+    // Instant scroll (behavior: "auto") prevents the jitter caused by overlapping
+    // smooth scrolls during token-by-token streaming.
+    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [msgs, open]);
 
   const send = useCallback(async (question?: string) => {
@@ -154,7 +171,7 @@ export default function FloatingChat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
           {msgs.map(m => (
             <div key={m.id}
               className={`msg-enter flex gap-2 ${m.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
