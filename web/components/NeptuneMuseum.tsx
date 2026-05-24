@@ -122,19 +122,6 @@ function NeptuneBody({ size }: { size: number }) {
   const blur = (f: number) => `${Math.max(1, size * f)}px`;
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      {/* Blue methane atmospheric glow — outer ring */}
-      <div
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          inset: `-${size * 0.05}px`,
-          background: "transparent",
-          boxShadow:
-            `0 0 ${size * 0.18}px ${size * 0.06}px rgba(59,130,246,0.35),` +
-            `0 0 ${size * 0.08}px rgba(96,165,250,0.50),` +
-            `0 0 ${size * 0.40}px rgba(29,78,216,0.18)`,
-        }}
-      />
-
       {/* Main sphere */}
       <div
         className="absolute inset-0 rounded-full overflow-hidden"
@@ -209,11 +196,6 @@ function NeptuneBody({ size }: { size: number }) {
           mixBlendMode: "overlay",
         }} />
 
-        {/* Methane limb glow — deep blue atmosphere */}
-        <div className="absolute inset-0" style={{
-          background:
-            "radial-gradient(circle at 50% 50%, transparent 42%, rgba(37,99,235,0.06) 56%, rgba(59,130,246,0.14) 70%, rgba(96,165,250,0.22) 82%, rgba(59,130,246,0.12) 92%, transparent 100%)",
-        }} />
 
         {/* Terminator shadow */}
         <div className="absolute inset-0" style={{
@@ -474,16 +456,6 @@ export default function NeptuneMuseum() {
           background: "radial-gradient(circle, rgba(37,99,235,0.16) 0%, rgba(29,78,216,0.08) 38%, transparent 65%)",
           filter: "blur(40px)",
           animation: "halo-breathe 9s ease-in-out infinite",
-        }} />
-
-        {/* Methane atmosphere backscatter halo */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{
-          width: neptuneSize * 1.30,
-          height: neptuneSize * 1.30,
-          borderRadius: "50%",
-          background: "transparent",
-          boxShadow: `0 0 ${neptuneSize * 0.20}px ${neptuneSize * 0.07}px rgba(59,130,246,0.25), 0 0 ${neptuneSize * 0.09}px rgba(96,165,250,0.40)`,
-          animation: "halo-breathe 11s ease-in-out 2s infinite",
         }} />
 
         {/* Neptune */}
