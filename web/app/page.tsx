@@ -4,10 +4,8 @@ import Link from "next/link";
 import { ArrowRight, ChevronDown, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import NebulaLayers from "@/components/NebulaLayers";
-import FeaturesSection from "@/components/FeaturesSection";
 import FloatingChat from "@/components/FloatingChat";
-import SerenitySection from "@/components/SerenitySection";
-import NousPlanet from "@/components/NousPlanet";
+import PlutoMuseum from "@/components/PlutoMuseum";
 
 const StarField           = dynamic(() => import("@/components/StarField"),           { ssr: false });
 const WormholeOrb         = dynamic(() => import("@/components/WormholeOrb"),         { ssr: false });
@@ -113,9 +111,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── FEATURES ─────────────────────────────────────────────── */}
-      <FeaturesSection />
-
       {/* ── DEMO STRIP ───────────────────────────────────────────── */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -182,11 +177,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SERENITY TRACKER ─────────────────────────────────────── */}
-      <SerenitySection />
-
-      {/* ── PLANET ───────────────────────────────────────────────── */}
-      <NousPlanet />
+      {/* ── PLUTO MUSEUM ─────────────────────────────────────────── */}
+      <PlutoMuseum />
 
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer className="glass border-t py-8 px-4"
@@ -196,9 +188,6 @@ export default function HomePage() {
           <span className="font-mono tracking-widest">AAOS RESEARCH © 2026</span>
           <div className="flex gap-6">
             <Link href="/chat" className="hover:text-violet-300 transition-colors">Chat</Link>
-            <a href="https://x.com/aleabitoreddit"
-              target="_blank" rel="noopener noreferrer"
-              className="hover:text-amber-300 transition-colors">Serenity</a>
             <a href="https://github.com/georgexu1118-ctrl/aaos"
               target="_blank" rel="noopener noreferrer"
               className="hover:text-violet-300 transition-colors">GitHub</a>
