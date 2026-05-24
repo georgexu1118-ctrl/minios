@@ -214,16 +214,19 @@ type ProviderConfig = {
 };
 
 const VISION_PROVIDERS: ProviderConfig[] = [
+  // Groq + Llama-4-Scout: 17B with only 16 experts (vs Maverick's 128) — runs
+  // dramatically faster on Groq's LPU while still handling undergrad-level work.
   {
     apiKeyEnv: "GROQ_API_KEY",
     baseURL: "https://api.groq.com/openai/v1",
-    modelId: "meta-llama/llama-4-maverick-17b-128e-instruct",
+    modelId: "meta-llama/llama-4-scout-17b-16e-instruct",
     mode: "vision",
   },
+  // Together AI fallback if GROQ_API_KEY isn't configured.
   {
     apiKeyEnv: "TOGETHER_API_KEY",
     baseURL: "https://api.together.xyz/v1",
-    modelId: "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
     mode: "vision",
   },
 ];

@@ -35,13 +35,45 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Downscale to a max 1024px long edge and re-encode as JPEG (q=0.82).
+  // A 4K screenshot drops from ~6 MB to ~120 KB — vision encoder runs ~3× faster.
+  async function downscale(file: File, maxEdge = 1024): Promise<string> {
+    const dataUrl: string = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result as string);
+      r.onerror = () => rej(r.error);
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("image decode failed"));
+      i.src = dataUrl;
+    });
+    const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+    if (scale === 1 && file.size < 400_000) return dataUrl; // already small
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.82);
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !onImageChange) return;
-    const reader = new FileReader();
-    reader.onload = () => onImageChange(reader.result as string);
-    reader.readAsDataURL(file);
-    // reset input so same file can be re-selected
+    try {
+      const shrunk = await downscale(file);
+      onImageChange(shrunk);
+    } catch {
+      // fallback: send raw if downscale fails
+      const r = new FileReader();
+      r.onload = () => onImageChange(r.result as string);
+      r.readAsDataURL(file);
+    }
     e.target.value = "";
   }
 
