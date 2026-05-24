@@ -77,6 +77,32 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
     e.target.value = "";
   }
 
+  // Paste a screenshot directly from the clipboard (Win+Shift+S → Ctrl+V).
+  // Walks clipboardData.items, grabs the first image, downscales it, and
+  // attaches — exactly like clicking the upload icon.
+  async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    if (!onImageChange) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        e.preventDefault(); // stop the textarea from inserting binary text
+        try {
+          const shrunk = await downscale(file);
+          onImageChange(shrunk);
+        } catch {
+          const r = new FileReader();
+          r.onload = () => onImageChange(r.result as string);
+          r.readAsDataURL(file);
+        }
+        return;
+      }
+    }
+    // No image in clipboard → let the textarea handle the normal text paste
+  }
+
   const canSend = !loading && (value.trim().length > 0 || !!image);
 
   return (
@@ -134,7 +160,8 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={handleKey}
-          placeholder={image ? "Ask about this image… (or just send)" : "Ask minios AI anything…"}
+          onPaste={handlePaste}
+          placeholder={image ? "Ask about this image… (or just send)" : "Ask anything… (paste a screenshot with Ctrl/⌘+V)"}
           disabled={loading}
           className="flex-1 bg-transparent resize-none outline-none text-sm
             text-violet-100 placeholder-violet-400/50 px-2 py-1.5
