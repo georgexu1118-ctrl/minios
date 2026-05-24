@@ -8,8 +8,6 @@ import ChatMessage, { type Message } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import NebulaLayers from "@/components/NebulaLayers";
 import FlashcardDeck from "@/components/FlashcardDeck";
-import PdfUpload from "@/components/PdfUpload";
-import { buildPdfContext, type IndexedPdf } from "@/lib/pdf-context";
 
 const StarField = dynamic(() => import("@/components/StarField"), { ssr: false });
 
@@ -36,7 +34,7 @@ const MODELS = [
     id: "gpt-oss-20b",
     label: "GPT-OSS 20B",
     role: "Educational",
-    desc: "OpenAI open weights · schoolwork, screenshots, PDF chat, flashcards",
+    desc: "OpenAI open weights · schoolwork, screenshot problem solving, flashcards",
     accent: "emerald",
   },
 ] as const;
@@ -50,7 +48,6 @@ export default function ChatPage() {
   const [sessionId] = useState(() => uuidv4());
   const [model, setModel] = useState<ModelId>("gpt-4o-mini");
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
-  const [pdfDocument, setPdfDocument] = useState<IndexedPdf | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -74,22 +71,6 @@ export default function ChatPage() {
 
     try {
       const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
-
-      if (model === "gpt-oss-20b" && pdfDocument) {
-        const queryResponse = await fetch("/api/pdf/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q }),
-        });
-        const queryData = await queryResponse.json() as { embedding?: number[]; error?: string };
-        if (!queryResponse.ok || !queryData.embedding) {
-          throw new Error(queryData.error ?? "PDF search failed.");
-        }
-        history[history.length - 1] = {
-          role: "user",
-          content: `${q}\n\n${buildPdfContext(pdfDocument, queryData.embedding)}`,
-        };
-      }
 
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
@@ -137,7 +118,7 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }, [input, image, loading, messages, sessionId, model, pdfDocument]);
+  }, [input, image, loading, messages, sessionId, model]);
 
   const isEmpty = messages.length === 0;
 
@@ -170,13 +151,12 @@ export default function ChatPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Flashcards button */}
           <button onClick={() => setFlashcardsOpen(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
               bg-emerald-700/30 border border-emerald-500/40 text-emerald-200
               text-[11px] font-mono tracking-wider cursor-pointer
               hover:bg-emerald-700/50 transition-colors"
-            title="Generate exam flashcards (uses selected model)">
+            title="Generate exam flashcards">
             <Sparkles size={11} /> Flashcards
           </button>
 
@@ -197,7 +177,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {/* ── PROMINENT MODEL SELECTOR (clear white labels on top) ───── */}
+      {/* ── MODEL SELECTOR ───── */}
       <div className="relative z-10 px-4 md:px-8 pt-4 pb-3 flex-shrink-0">
         <div className="max-w-3xl mx-auto">
           <p className="text-center text-[10px] font-mono tracking-[0.25em] text-violet-400/70 uppercase mb-3">
@@ -207,7 +187,6 @@ export default function ChatPage() {
             {MODELS.map(m => {
               const active = model === m.id;
               const accent = m.accent;
-              // Per-accent styling so each model is visually distinct
               const styles = accent === "emerald"
                 ? { bg: "bg-emerald-900/40", border: "border-emerald-500/60", shadow: "shadow-emerald-900/30",
                     iconBg: "bg-emerald-700/40", iconText: "text-emerald-300",
@@ -217,8 +196,7 @@ export default function ChatPage() {
                     iconBg: "bg-violet-700/40", iconText: "text-violet-300",
                     badgeBg: "bg-violet-700/40", badgeText: "text-violet-200", badgeBorder: "border-violet-500/30",
                     dot: "bg-violet-400" };
-              const Icon = accent === "emerald" ? GraduationCap
-                         : Briefcase;
+              const Icon = accent === "emerald" ? GraduationCap : Briefcase;
               return (
                 <button key={m.id}
                   onClick={() => setModel(m.id)}
@@ -235,7 +213,6 @@ export default function ChatPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        {/* WHITE label, clearly visible */}
                         <span className="text-sm md:text-base font-bold text-white tracking-tight">
                           {m.label}
                         </span>
@@ -256,11 +233,6 @@ export default function ChatPage() {
               );
             })}
           </div>
-          {model === "gpt-oss-20b" && (
-            <div className="mt-3">
-              <PdfUpload document={pdfDocument} disabled={loading} onChange={setPdfDocument} />
-            </div>
-          )}
         </div>
       </div>
 
@@ -284,7 +256,7 @@ export default function ChatPage() {
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
                   Pick <span className="text-white font-semibold">GPT-4o-mini</span> (closed, general) or
                   <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork).
-                  GPT-OSS also supports <span className="text-emerald-300 font-semibold">PDF upload</span> and flashcards.
+                  GPT-OSS supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
                 </p>
               </div>
 
@@ -319,12 +291,11 @@ export default function ChatPage() {
             onImageChange={setImage}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · GPT-4o-mini · GPT-OSS 20B · Screenshots · PDF Chat · Flashcards · Live Web
+            AAOS Research · GPT-4o-mini · GPT-OSS 20B · Screenshots · Flashcards · Live Web
           </p>
         </div>
       </footer>
 
-      {/* Flashcard generator modal */}
       <FlashcardDeck open={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} model={model} />
     </div>
   );

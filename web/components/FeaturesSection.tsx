@@ -6,7 +6,7 @@ const FEATURES = [
     icon: Brain,
     color: "#a78bfa",
     title: "Multi-Model Intelligence",
-    desc: "Choose specialized models for current research, coding, study support, PDF-grounded answers, and structured flashcards.",
+    desc: "Choose specialized models for current research, coding, study support, screenshot problem solving, and structured flashcards.",
   },
   {
     icon: TrendingUp,
