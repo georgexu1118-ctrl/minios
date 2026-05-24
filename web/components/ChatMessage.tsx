@@ -1,5 +1,9 @@
 "use client";
 import { Bot, User, Globe, TrendingUp } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
+import rehypeKatex from "rehype-katex";
 
 export interface Message {
   id: string;
@@ -21,6 +25,16 @@ function ToolBadge({ tool, args }: { tool: string; args: Record<string, unknown>
   );
 }
 
+// Convert LaTeX delimiters that remark-math doesn't recognize natively:
+//   \[ ... \]  → $$ ... $$   (display math)
+//   \( ... \)  →  $ ... $    (inline math)
+// remark-math handles $...$ and $$...$$ out of the box.
+function normalizeMath(text: string): string {
+  return text
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_m, body) => `\n$$${body}$$\n`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_m, body) => `$${body}$`);
+}
+
 export default function ChatMessage({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
 
@@ -40,7 +54,6 @@ export default function ChatMessage({ msg }: { msg: Message }) {
 
       {/* Bubble */}
       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
-        {/* Tool badges */}
         {msg.toolCalls && msg.toolCalls.length > 0 && (
           <div className="flex flex-wrap">
             {msg.toolCalls.map((tc, i) => (
@@ -49,7 +62,6 @@ export default function ChatMessage({ msg }: { msg: Message }) {
           </div>
         )}
 
-        {/* Attached screenshot */}
         {msg.imageUrl && (
           <div className={`rounded-xl overflow-hidden border border-violet-500/30 mb-1 ${isUser ? "self-end" : "self-start"}`}
             style={{ maxWidth: 260 }}>
@@ -58,14 +70,27 @@ export default function ChatMessage({ msg }: { msg: Message }) {
           </div>
         )}
 
-        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap glass
+        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed glass markdown-body
           ${isUser
-            ? "rounded-tr-sm border-violet-600/30 text-violet-100"
+            ? "rounded-tr-sm border-violet-600/30 text-violet-100 whitespace-pre-wrap"
             : "rounded-tl-sm border-indigo-500/20 text-indigo-100"
           }
           ${!msg.content && msg.imageUrl ? "hidden" : ""}`}>
-          {msg.content}
-          {msg.streaming && <span className="cursor-blink" />}
+          {isUser ? (
+            <>
+              {msg.content}
+              {msg.streaming && <span className="cursor-blink" />}
+            </>
+          ) : (
+            <>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}>
+                {normalizeMath(msg.content)}
+              </ReactMarkdown>
+              {msg.streaming && <span className="cursor-blink" />}
+            </>
+          )}
         </div>
       </div>
     </div>
