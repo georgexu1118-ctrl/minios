@@ -217,37 +217,78 @@ function NeptuneBody({ size }: { size: number }) {
   );
 }
 
-// Generic spherical body for moons.
+// Generic spherical body for moons — fully 3D lit sphere.
 function Body({ size, color, highlight, shadow }: {
   size: number; color: string; highlight: string; shadow: string;
 }) {
+  const b = (f: number) => `${Math.max(0.5, size * f)}px`;
   return (
-    <div
-      className="relative rounded-full overflow-hidden"
-      style={{
-        width: size, height: size,
-        background: `radial-gradient(circle at 35% 30%, ${highlight} 0%, ${color} 28%, ${color} 52%, ${shadow} 82%, #000 100%)`,
-        boxShadow:
-          `inset -${size * 0.18}px -${size * 0.10}px ${size * 0.30}px rgba(0,0,0,0.72),` +
-          `inset ${size * 0.05}px ${size * 0.05}px ${size * 0.18}px rgba(255,255,255,0.06),` +
-          `0 0 ${size * 0.5}px ${color}44,` +
-          `0 0 ${size * 1.0}px ${color}1a`,
-      }}
-    >
-      <div className="absolute inset-0" style={{
-        backgroundImage: `repeating-linear-gradient(170deg, transparent 0%, ${shadow}22 5%, transparent 10%, ${highlight}0f 16%, transparent 22%)`,
-        mixBlendMode: "overlay",
+    <div className="relative" style={{ width: size, height: size }}>
+
+      {/* Drop shadow beneath the sphere */}
+      <div className="absolute pointer-events-none" style={{
+        bottom: `-${size * 0.06}px`,
+        left: `${size * 0.12}px`,
+        width: size * 0.76,
+        height: size * 0.18,
+        background: "radial-gradient(ellipse, rgba(0,0,0,0.55) 0%, transparent 70%)",
+        filter: `blur(${b(0.07)})`,
+        transform: "scaleY(0.45)",
       }} />
-      <div className="absolute rounded-full" style={{
-        top: `${size * 0.10}px`,
-        left: `${size * 0.22}px`,
-        width: size * 0.22,
-        height: size * 0.14,
-        background: `radial-gradient(circle, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.08) 52%, transparent 76%)`,
-        filter: `blur(${Math.max(1, size * 0.012)}px)`,
+
+      {/* Main sphere — light from upper-left */}
+      <div className="absolute inset-0 rounded-full overflow-hidden" style={{
+        background: `radial-gradient(circle at 33% 28%,
+          ${highlight} 0%,
+          ${highlight} 8%,
+          ${color} 26%,
+          ${color} 50%,
+          ${shadow} 74%,
+          #050508 92%,
+          #000 100%)`,
+      }}>
+        {/* Surface micro-texture */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: `repeating-linear-gradient(168deg,
+            transparent 0%,
+            ${shadow}28 4%,
+            transparent 8%,
+            ${highlight}12 13%,
+            transparent 18%)`,
+          mixBlendMode: "overlay",
+        }} />
+
+        {/* Terminator — gradual dark sweep from right */}
+        <div className="absolute inset-0" style={{
+          background:
+            "radial-gradient(circle at 67% 54%, transparent 22%, rgba(0,0,0,0.42) 48%, rgba(0,0,0,0.88) 82%)",
+        }} />
+
+        {/* Rim light — cool blue ambient from the dark limb edge */}
+        <div className="absolute inset-0" style={{
+          background:
+            "radial-gradient(circle at 78% 62%, transparent 54%, rgba(29,78,216,0.22) 72%, rgba(59,130,246,0.14) 85%, transparent 94%)",
+        }} />
+      </div>
+
+      {/* Soft secondary specular — broad glow */}
+      <div className="absolute rounded-full pointer-events-none" style={{
+        top: `${size * 0.05}px`,
+        left: `${size * 0.14}px`,
+        width: size * 0.34,
+        height: size * 0.24,
+        background: "radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.07) 50%, transparent 76%)",
+        filter: `blur(${b(0.020)})`,
       }} />
-      <div className="absolute inset-0" style={{
-        background: "radial-gradient(circle at 70% 55%, transparent 35%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0.80) 92%)",
+
+      {/* Sharp primary specular — bright pinpoint */}
+      <div className="absolute rounded-full pointer-events-none" style={{
+        top: `${size * 0.09}px`,
+        left: `${size * 0.21}px`,
+        width: size * 0.18,
+        height: size * 0.12,
+        background: "radial-gradient(circle, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.55) 28%, rgba(255,255,255,0.12) 60%, transparent 82%)",
+        filter: `blur(${b(0.007)})`,
       }} />
     </div>
   );
