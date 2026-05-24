@@ -99,46 +99,102 @@ async function getStock(symbol: string): Promise<Record<string, unknown>> {
   }
 }
 
+// Tiny RSS item extractor — works in Edge Runtime (no DOMParser needed).
+function extractTag(block: string, tag: string): string {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const m = block.match(re);
+  if (!m) return "";
+  return m[1].replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, "$1").trim();
+}
+
+function parseRssItems(xml: string, limit = 6) {
+  const items: { title: string; url: string; snippet: string; date?: string; source?: string }[] = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/g;
+  let m: RegExpExecArray | null;
+  while ((m = itemRe.exec(xml)) !== null && items.length < limit) {
+    const block = m[1];
+    const title = extractTag(block, "title");
+    const link = extractTag(block, "link");
+    if (!title || !link) continue;
+    const pubDate = extractTag(block, "pubDate");
+    const source = extractTag(block, "source");
+    const description = extractTag(block, "description")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+    items.push({
+      title: title.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'"),
+      url: link,
+      snippet: description.slice(0, 280),
+      date: pubDate || undefined,
+      source: source || undefined,
+    });
+  }
+  return items;
+}
+
+// Real news via Google News RSS (no API key, no auth). Returns fresh headlines
+// with publish dates and source publications — what the model was missing.
+async function googleNews(query: string) {
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; AAOS-Research/1.0)" },
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const xml = await res.text();
+  return parseRssItems(xml, 6);
+}
+
+// DuckDuckGo Instant Answer — good for non-news factual lookups (definitions,
+// people, etc.) but useless for news. Kept as fallback.
+async function duckDuckGo(query: string) {
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+  const res = await fetch(url, { headers: { "User-Agent": "AAOS-Research/1.0" }, cache: "no-store" });
+  if (!res.ok) return [];
+  const data = await res.json() as {
+    Abstract?: string;
+    AbstractURL?: string;
+    AbstractSource?: string;
+    RelatedTopics?: Array<{ Text?: string; FirstURL?: string; Topics?: Array<{ Text?: string; FirstURL?: string }> }>;
+    Answer?: string;
+  };
+  const results: { title: string; url: string; snippet: string }[] = [];
+  if (data.Answer) results.push({ title: "Direct Answer", url: "", snippet: data.Answer });
+  if (data.Abstract && data.AbstractURL)
+    results.push({ title: data.AbstractSource ?? "Summary", url: data.AbstractURL, snippet: data.Abstract.slice(0, 400) });
+  for (const t of data.RelatedTopics ?? []) {
+    if (results.length >= 5) break;
+    if (t.Text && t.FirstURL) results.push({ title: t.Text.slice(0, 80), url: t.FirstURL, snippet: t.Text.slice(0, 280) });
+    for (const sub of t.Topics ?? []) {
+      if (results.length >= 5) break;
+      if (sub.Text && sub.FirstURL) results.push({ title: sub.Text.slice(0, 80), url: sub.FirstURL, snippet: sub.Text.slice(0, 280) });
+    }
+  }
+  return results;
+}
+
 async function webSearch(query: string): Promise<Record<string, unknown>> {
   query = (query ?? "").trim();
   if (!query) return { error: "empty query" };
+
+  // 1) Always try Google News RSS first — fresh headlines, real publishers, real dates.
   try {
-    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-    const res = await fetch(url, { headers: { "User-Agent": "AAOS-Research/1.0" }, next: { revalidate: 0 } });
-    const data = await res.json() as {
-      Abstract?: string;
-      AbstractURL?: string;
-      AbstractSource?: string;
-      RelatedTopics?: Array<{ Text?: string; FirstURL?: string; Name?: string; Topics?: Array<{ Text?: string; FirstURL?: string }> }>;
-      Answer?: string;
-    };
+    const news = await googleNews(query);
+    if (news.length) return { query, source: "google news", results: news };
+  } catch { /* fall through */ }
 
-    const results: { title: string; url: string; snippet: string }[] = [];
+  // 2) Fallback to DuckDuckGo for non-news factual queries.
+  try {
+    const ddg = await duckDuckGo(query);
+    if (ddg.length) return { query, source: "duckduckgo", results: ddg };
+  } catch { /* fall through */ }
 
-    if (data.Answer) {
-      results.push({ title: "Direct Answer", url: "", snippet: data.Answer });
-    }
-    if (data.Abstract && data.AbstractURL) {
-      results.push({ title: data.AbstractSource ?? "Summary", url: data.AbstractURL, snippet: data.Abstract.slice(0, 400) });
-    }
-    for (const t of data.RelatedTopics ?? []) {
-      if (results.length >= 5) break;
-      if (t.Text && t.FirstURL) {
-        results.push({ title: t.Text.slice(0, 80), url: t.FirstURL, snippet: t.Text.slice(0, 300) });
-      }
-      for (const sub of t.Topics ?? []) {
-        if (results.length >= 5) break;
-        if (sub.Text && sub.FirstURL) {
-          results.push({ title: sub.Text.slice(0, 80), url: sub.FirstURL, snippet: sub.Text.slice(0, 300) });
-        }
-      }
-    }
-
-    if (!results.length) return { error: `no results for "${query}"` };
-    return { query, results };
-  } catch (e) {
-    return { error: String(e) };
-  }
+  return { error: `no results for "${query}"` };
 }
 
 // ---------------------------------------------------------------------------
@@ -161,10 +217,13 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "web_search",
-      description: "Search the web for current events, recent news, or post-training-cutoff information.",
+      description: "Search the live web for current events, today's headlines, recent news, breaking stories, " +
+        "or anything that may have changed after your training cutoff. Returns real news articles from publishers " +
+        "(NYT, Reuters, Bloomberg, BBC, TechCrunch, etc.) via Google News, with publish dates and source names. " +
+        "ALWAYS use this tool when the user asks about news, latest, today, this week, or recent events.",
       parameters: {
         type: "object",
-        properties: { query: { type: "string", description: "search query" } },
+        properties: { query: { type: "string", description: "search query — be specific (e.g. 'OpenAI news today', 'AI regulation 2026')" } },
         required: ["query"],
       },
     },
@@ -173,11 +232,14 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
 
 const SYSTEM_PROMPT =
   "You are AAOS — the Autonomous AI OS — an advanced intelligence running on a custom " +
-  "32-bit OS kernel built from scratch. You have the precision of a spacecraft navigation " +
-  "system and the curiosity of an explorer beyond the known universe. " +
+  "32-bit OS kernel built from scratch. " +
   "Use get_stock for US stock questions (live Yahoo Finance data). " +
-  "Use web_search for current events, recent news, or anything beyond your training cutoff. " +
-  "Answer general knowledge from your own training without searching. " +
+  "ALWAYS call web_search for ANY question about: current events, today's news, latest news, " +
+  "what's happening, recent announcements, this week, this month, this year, or anything that " +
+  "could have changed after your training cutoff. NEVER respond with 'I cannot retrieve news' or " +
+  "similar disclaimers — you have web_search available. Call it. When web_search returns results, " +
+  "summarize them naturally with the source publication name and date for each story. " +
+  "Answer general/timeless knowledge from your own training without searching. " +
   "Be concise, accurate, and confident. Prefer bullet points for multi-part answers.";
 
 // ---------------------------------------------------------------------------
