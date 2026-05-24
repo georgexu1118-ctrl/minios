@@ -243,31 +243,10 @@ const SYSTEM_PROMPT =
   "Be concise, accurate, and confident. Prefer bullet points for multi-part answers.";
 
 // ---------------------------------------------------------------------------
-// Model registry — general-purpose vs educational
+// Provider chains — ordered by speed/quality preference.
+// Each chain is tried in order; 429/503/529 triggers the next provider.
+// Keys live only in Vercel encrypted env — never committed to code.
 // ---------------------------------------------------------------------------
-// "gpt-4o-mini"  → OpenAI proprietary, general-purpose, fastest, cheapest
-// "gpt-oss-20b"  → OpenAI open-weight model on Together AI; tuned via prompt
-//                  for educational use (school work, study, flashcards)
-// VISION_MODEL   → Llama-4-Maverick on Together AI: multimodal, used whenever
-//                  an image is attached — gpt-oss-20b has no vision support
-const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string; mode: "general" | "educational" | "vision" }> = {
-  "gpt-4o-mini": {
-    apiKeyEnv: "OPENAI_API_KEY",
-    modelId: "gpt-4o-mini",
-    mode: "general",
-  },
-  "gpt-oss-20b": {
-    apiKeyEnv: "TOGETHER_API_KEY",
-    baseURL: "https://api.together.xyz/v1",
-    modelId: "openai/gpt-oss-20b",
-    mode: "educational",
-  },
-};
-
-// When an image is uploaded, route to a vision-capable model.
-// Try Groq first (LPU inference, ~5-10× faster than GPU providers), then
-// fall back to Together AI if Groq isn't configured. Both run Llama-4-Maverick
-// (17Bx128 MoE) — multimodal, strong at undergrad-level STEM and humanities.
 type ProviderConfig = {
   apiKeyEnv: string;
   baseURL?: string;
@@ -275,29 +254,98 @@ type ProviderConfig = {
   mode: "general" | "educational" | "vision";
 };
 
-const VISION_PROVIDERS: ProviderConfig[] = [
-  // Groq + Llama-4-Scout: 17B with only 16 experts (vs Maverick's 128) — runs
-  // dramatically faster on Groq's LPU while still handling undergrad-level work.
-  {
-    apiKeyEnv: "GROQ_API_KEY",
-    baseURL: "https://api.groq.com/openai/v1",
-    modelId: "meta-llama/llama-4-scout-17b-16e-instruct",
-    mode: "vision",
-  },
-  // Together AI fallback if GROQ_API_KEY isn't configured.
-  {
-    apiKeyEnv: "TOGETHER_API_KEY",
-    baseURL: "https://api.together.xyz/v1",
-    modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-    mode: "vision",
-  },
+// Educational layer (gpt-oss-20b selected): Together AI first, Groq as last resort.
+const EDU_PROVIDERS: ProviderConfig[] = [
+  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "openai/gpt-oss-20b", mode: "educational" },
+  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "educational" },
+  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", mode: "educational" },
+  { apiKeyEnv: "GROQ_API_KEY",    baseURL: "https://api.groq.com/openai/v1", modelId: "llama-3.1-8b-instant", mode: "educational" },
 ];
 
-function pickVisionProvider(): ProviderConfig | null {
-  for (const p of VISION_PROVIDERS) {
-    if (process.env[p.apiKeyEnv]) return p;
-  }
+// General layer (gpt-4o-mini selected): OpenAI primary, Together + Groq backups.
+const GENERAL_PROVIDERS: ProviderConfig[] = [
+  { apiKeyEnv: "OPENAI_API_KEY",   modelId: "gpt-4o-mini", mode: "general" },
+  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "general" },
+  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", mode: "general" },
+  { apiKeyEnv: "GROQ_API_KEY",    baseURL: "https://api.groq.com/openai/v1", modelId: "llama-3.3-70b-versatile", mode: "general" },
+];
+
+// Vision layer: Groq LPU first (fastest), Together AI fallback.
+const VISION_PROVIDERS: ProviderConfig[] = [
+  { apiKeyEnv: "GROQ_API_KEY",    baseURL: "https://api.groq.com/openai/v1", modelId: "meta-llama/llama-4-scout-17b-16e-instruct", mode: "vision" },
+  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "vision" },
+];
+
+function resolveProviderChain(requested: string, hasImage: boolean): ProviderConfig[] {
+  if (hasImage && requested !== "gpt-4o-mini") return VISION_PROVIDERS;
+  if (requested === "gpt-oss-20b") return EDU_PROVIDERS;
+  return GENERAL_PROVIDERS;
+}
+
+function firstAvailable(chain: ProviderConfig[]): ProviderConfig | null {
+  for (const p of chain) { if (process.env[p.apiKeyEnv]) return p; }
   return null;
+}
+
+// Try each provider in order; skip on rate-limit / overload errors.
+async function streamWithFallbacks(
+  chain: ProviderConfig[],
+  params: {
+    messages: OpenAI.Chat.ChatCompletionMessageParam[];
+    tools?: OpenAI.Chat.ChatCompletionTool[];
+    temperature?: number;
+    max_tokens?: number;
+  }
+): Promise<{ chunks: AsyncIterable<OpenAI.Chat.ChatCompletionChunk>; client: OpenAI; modelId: string }> {
+  const errs: string[] = [];
+  for (const provider of chain) {
+    const key = process.env[provider.apiKeyEnv];
+    if (!key) continue;
+    const client = new OpenAI({ apiKey: key, baseURL: provider.baseURL });
+    try {
+      const chunks = await client.chat.completions.create({
+        model: provider.modelId, stream: true, ...params,
+      });
+      return { chunks, client, modelId: provider.modelId };
+    } catch (e: unknown) {
+      const status = (e as { status?: number })?.status;
+      if (status === 429 || status === 503 || status === 529 || status === 500) {
+        errs.push(`${provider.modelId}:${status}`);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error(`All providers unavailable (${errs.join(", ")})`);
+}
+
+async function completeWithFallbacks(
+  chain: ProviderConfig[],
+  params: {
+    messages: OpenAI.Chat.ChatCompletionMessageParam[];
+    temperature?: number;
+    max_tokens?: number;
+  }
+): Promise<OpenAI.Chat.ChatCompletion> {
+  const errs: string[] = [];
+  for (const provider of chain) {
+    const key = process.env[provider.apiKeyEnv];
+    if (!key) continue;
+    const client = new OpenAI({ apiKey: key, baseURL: provider.baseURL });
+    try {
+      return await client.chat.completions.create({
+        model: provider.modelId, stream: false, ...params,
+      });
+    } catch (e: unknown) {
+      const status = (e as { status?: number })?.status;
+      if (status === 429 || status === 503 || status === 529 || status === 500) {
+        errs.push(`${provider.modelId}:${status}`);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error(`All providers unavailable (${errs.join(", ")})`);
 }
 
 // Deep solution-chemistry reference, injected into both EDU and VISION prompts.
@@ -398,33 +446,18 @@ export async function POST(req: NextRequest) {
   const isFlashcards = body.mode === "flashcards";
   const hasImage = !!body.image;
 
-  // When a screenshot is attached: route to a vision model.
-  // Prefer Groq (LPU, fastest), fall back to Together AI. gpt-4o-mini also supports
-  // vision but Groq/Together-hosted open-weight models are dramatically cheaper.
   const requested = isFlashcards ? "gpt-oss-20b" : (body.model ?? "gpt-4o-mini");
-  const config: ProviderConfig = hasImage && requested !== "gpt-4o-mini"
-    ? (pickVisionProvider() ?? VISION_PROVIDERS[0])
-    : (MODELS[requested] ?? MODELS["gpt-4o-mini"]);
+  const providerChain = resolveProviderChain(requested, hasImage);
 
-  const apiKey = process.env[config.apiKeyEnv];
-  if (!apiKey) {
-    const friendlyMap: Record<string, string> = {
-      "TOGETHER_API_KEY": hasImage
-        ? "Image solving requires TOGETHER_API_KEY in Vercel environment variables."
-        : "gpt-oss-20b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel.",
-    };
-    const friendly = friendlyMap[config.apiKeyEnv] ?? `${config.apiKeyEnv} not configured`;
-    return new Response(JSON.stringify({ error: friendly }), {
+  if (!firstAvailable(providerChain)) {
+    return new Response(JSON.stringify({ error: "No API key configured for this model. Check Vercel environment variables." }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
 
-  const model = config.modelId;
-  const openai = new OpenAI({ apiKey, baseURL: config.baseURL });
-  const sysPrompt = isFlashcards
-    ? SYSTEM_PROMPT_FLASHCARDS
+  const sysPrompt = isFlashcards ? SYSTEM_PROMPT_FLASHCARDS
     : hasImage ? SYSTEM_PROMPT_VISION
-    : config.mode === "educational" ? SYSTEM_PROMPT_EDU
+    : requested === "gpt-oss-20b" ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
   const rawMessages = (body.messages ?? []).map(m => ({
     role: m.role as "user" | "assistant",
@@ -477,8 +510,8 @@ export async function POST(req: NextRequest) {
         // ── FLASHCARD MODE ───────────────────────────────────────────
         // Collect full JSON output, parse, emit one "flashcards" event.
         if (isFlashcards) {
-          const completion = await openai.chat.completions.create({
-            model, messages, temperature: 0.5, max_tokens: 1500, stream: false,
+          const completion = await completeWithFallbacks(providerChain, {
+            messages, temperature: 0.5, max_tokens: 1500,
           });
           const raw = completion.choices[0]?.message?.content ?? "";
 
@@ -521,14 +554,32 @@ export async function POST(req: NextRequest) {
         const useTools = !hasImage;
         const maxTok = hasImage ? 1200 : 600;
 
+        // mainClient/mainModel are set on round 0 via fallback selection and
+        // reused for subsequent tool-call rounds to keep conversation coherent.
+        let mainClient!: OpenAI;
+        let mainModel = "";
+
         for (let round = 0; round < 4; round++) {
-          const chunks = await openai.chat.completions.create({
-            model, messages,
-            ...(useTools ? { tools: TOOLS } : {}),
-            temperature: hasImage ? 0.2 : 0.4,
-            max_tokens: maxTok,
-            stream: true,
-          });
+          let chunks: AsyncIterable<OpenAI.Chat.ChatCompletionChunk>;
+          if (round === 0) {
+            const result = await streamWithFallbacks(providerChain, {
+              messages,
+              ...(useTools ? { tools: TOOLS } : {}),
+              temperature: hasImage ? 0.2 : 0.4,
+              max_tokens: maxTok,
+            });
+            chunks = result.chunks;
+            mainClient = result.client;
+            mainModel = result.modelId;
+          } else {
+            chunks = await mainClient.chat.completions.create({
+              model: mainModel, messages,
+              ...(useTools ? { tools: TOOLS } : {}),
+              temperature: hasImage ? 0.2 : 0.4,
+              max_tokens: maxTok,
+              stream: true,
+            });
+          }
 
           let content = "";
           let finishReason = "";
