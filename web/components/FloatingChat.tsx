@@ -39,8 +39,7 @@ export default function FloatingChat() {
 
     const userMsg: Msg = { id: uuidv4(), role: "user", content: q };
     const aiId = uuidv4();
-    const aiMsg: Msg = { id: aiId, role: "assistant", content: "", streaming: true };
-    setMsgs(prev => [...prev, userMsg, aiMsg]);
+    setMsgs(prev => [...prev, userMsg, { id: aiId, role: "assistant", content: "", streaming: true }]);
     setLoading(true);
 
     try {
@@ -51,32 +50,51 @@ export default function FloatingChat() {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, session_id: sessionId }),
+        body: JSON.stringify({ messages: history, model: "gpt-4o-mini", session_id: sessionId }),
       });
 
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok || !res.body) throw new Error(`Server error ${res.status}`);
+
       const reader = res.body.getReader();
       const dec = new TextDecoder();
+      // Buffer accumulates across TCP chunk boundaries so partial SSE lines aren't dropped
+      let buf = "";
+
+      const processLine = (line: string) => {
+        if (!line.startsWith("data: ")) return;
+        try {
+          const ev = JSON.parse(line.slice(6));
+          if (ev.type === "text") {
+            setMsgs(prev => prev.map(m => m.id === aiId ? { ...m, content: m.content + ev.text } : m));
+          } else if (ev.type === "done") {
+            setMsgs(prev => prev.map(m => m.id === aiId ? { ...m, streaming: false } : m));
+          } else if (ev.type === "error") {
+            setMsgs(prev => prev.map(m =>
+              m.id === aiId ? { ...m, content: ev.message ?? "Something went wrong.", streaming: false } : m
+            ));
+          }
+        } catch { /* incomplete JSON fragment — will be reassembled next chunk */ }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const raw = dec.decode(value, { stream: true });
-        for (const line of raw.split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const ev = JSON.parse(line.slice(6));
-            if (ev.type === "text") {
-              setMsgs(prev => prev.map(m => m.id === aiId ? { ...m, content: m.content + ev.text } : m));
-            } else if (ev.type === "done") {
-              setMsgs(prev => prev.map(m => m.id === aiId ? { ...m, streaming: false } : m));
-            }
-          } catch { /* partial chunk */ }
-        }
+        buf += dec.decode(value, { stream: true });
+        const parts = buf.split("\n");
+        // Last element may be an incomplete line — keep it in the buffer
+        buf = parts.pop() ?? "";
+        for (const line of parts) processLine(line);
       }
+
+      // Flush any remaining buffered line
+      if (buf) processLine(buf);
+
+      // Guarantee message is never stuck in streaming state
+      setMsgs(prev => prev.map(m => m.id === aiId && m.streaming ? { ...m, streaming: false } : m));
+
     } catch (e) {
       setMsgs(prev => prev.map(m =>
-        m.id === aiId ? { ...m, content: `[error: ${e instanceof Error ? e.message : "unknown"}]`, streaming: false } : m
+        m.id === aiId ? { ...m, content: `⚠️ ${e instanceof Error ? e.message : "Connection error"}`, streaming: false } : m
       ));
     } finally {
       setLoading(false);
