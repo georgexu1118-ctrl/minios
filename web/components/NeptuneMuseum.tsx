@@ -319,7 +319,7 @@ function OrbitingMoon({ moon, dimmed, onClick, scale }: {
           transformStyle: "preserve-3d",
         }}
       >
-        <div style={{ width: 0, height: 0, animation: `orbit-spin ${moon.duration}s linear infinite` }}>
+        <div style={{ width: 0, height: 0, animation: `orbit-spin ${moon.duration}s linear infinite`, transformStyle: "preserve-3d" }}>
           <button
             type="button"
             onClick={onClick}
@@ -330,6 +330,7 @@ function OrbitingMoon({ moon, dimmed, onClick, scale }: {
               width: sz, height: sz,
               marginLeft: -sz / 2, marginTop: -sz / 2,
               transform: `rotateX(-${74 + moon.tilt}deg)`,
+              transformStyle: "preserve-3d",
               opacity: dimmed ? 0.16 : 1,
               border: "none", background: "transparent", padding: 0,
             }}
