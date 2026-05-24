@@ -1,6 +1,13 @@
 "use client";
-import { useRef, useEffect, FormEvent } from "react";
-import { Send, Loader2, ImagePlus, X } from "lucide-react";
+import { useRef, useEffect, useState, FormEvent } from "react";
+import { Send, Loader2, ImagePlus, X, FileText } from "lucide-react";
+
+export interface PdfAttachment {
+  name: string;
+  text: string;
+  chars: number;
+  truncated?: boolean;
+}
 
 interface Props {
   value: string;
@@ -9,11 +16,19 @@ interface Props {
   loading: boolean;
   image?: string | null;
   onImageChange?: (img: string | null) => void;
+  pdf?: PdfAttachment | null;
+  onPdfChange?: (pdf: PdfAttachment | null) => void;
 }
 
-export default function ChatInput({ value, onChange, onSubmit, loading, image, onImageChange }: Props) {
+export default function ChatInput({
+  value, onChange, onSubmit, loading,
+  image, onImageChange,
+  pdf, onPdfChange,
+}: Props) {
   const textRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -77,6 +92,36 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
     e.target.value = "";
   }
 
+  // Upload a PDF, extract its text server-side (no embeddings — fast path),
+  // and stash the result so it can be sent as system context on every turn.
+  async function handlePdfChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !onPdfChange) return;
+    setPdfLoading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/pdf", { method: "POST", body: form });
+      const data = await res.json() as {
+        name?: string; text?: string; chars?: number; truncated?: boolean; error?: string;
+      };
+      if (!res.ok || data.error || !data.text) {
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+      onPdfChange({
+        name: data.name ?? file.name,
+        text: data.text,
+        chars: data.chars ?? data.text.length,
+        truncated: data.truncated,
+      });
+    } catch (err) {
+      alert(`PDF upload failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setPdfLoading(false);
+      e.target.value = "";
+    }
+  }
+
   // Paste a screenshot directly from the clipboard (Win+Shift+S → Ctrl+V).
   // Walks clipboardData.items, grabs the first image, downscales it, and
   // attaches — exactly like clicking the upload icon.
@@ -107,20 +152,43 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Image preview strip */}
-      {image && (
-        <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-violet-500/40 flex-shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt="Attached screenshot" className="w-full h-full object-cover" />
-          {onImageChange && (
-            <button
-              type="button"
-              onClick={() => onImageChange(null)}
-              className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center
-                hover:bg-black/90 transition-colors cursor-pointer"
-              aria-label="Remove image">
-              <X size={10} className="text-white" />
-            </button>
+      {/* Attachment previews */}
+      {(image || pdf) && (
+        <div className="flex items-start gap-2 flex-wrap">
+          {image && (
+            <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-violet-500/40 flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="Attached screenshot" className="w-full h-full object-cover" />
+              {onImageChange && (
+                <button
+                  type="button"
+                  onClick={() => onImageChange(null)}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center
+                    hover:bg-black/90 transition-colors cursor-pointer"
+                  aria-label="Remove image">
+                  <X size={10} className="text-white" />
+                </button>
+              )}
+            </div>
+          )}
+          {pdf && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-900/40
+              border border-emerald-500/40 text-emerald-200 text-[11px] font-mono">
+              <FileText size={12} />
+              <span className="truncate max-w-[200px]" title={pdf.name}>{pdf.name}</span>
+              <span className="text-emerald-300/60 text-[10px]">
+                {(pdf.chars / 1000).toFixed(1)}k{pdf.truncated ? " · trimmed" : ""}
+              </span>
+              {onPdfChange && (
+                <button
+                  type="button"
+                  onClick={() => onPdfChange(null)}
+                  className="ml-1 w-5 h-5 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center cursor-pointer"
+                  aria-label="Remove PDF">
+                  <X size={10} className="text-emerald-200" />
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -131,7 +199,7 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
           focus-within:shadow-[0_0_20px_rgba(124,58,237,0.25)]
           transition-all duration-300">
 
-        {/* Hidden file input */}
+        {/* Hidden file inputs */}
         <input
           ref={fileRef}
           type="file"
@@ -139,8 +207,15 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
           className="hidden"
           onChange={handleFileChange}
         />
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={handlePdfChange}
+        />
 
-        {/* Image upload button */}
+        {/* Image upload */}
         {onImageChange && (
           <button
             type="button"
@@ -151,6 +226,22 @@ export default function ChatInput({ value, onChange, onSubmit, loading, image, o
               text-violet-400/60 hover:text-violet-300 hover:bg-violet-800/40
               disabled:opacity-40 transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed">
             <ImagePlus size={16} />
+          </button>
+        )}
+
+        {/* PDF upload */}
+        {onPdfChange && (
+          <button
+            type="button"
+            onClick={() => pdfInputRef.current?.click()}
+            disabled={loading || pdfLoading}
+            title="Attach PDF"
+            className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center
+              text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-800/40
+              disabled:opacity-40 transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed">
+            {pdfLoading
+              ? <Loader2 size={16} className="animate-spin" />
+              : <FileText size={16} />}
           </button>
         )}
 

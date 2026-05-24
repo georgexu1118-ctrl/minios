@@ -1,32 +1,14 @@
 import { extractText } from "unpdf";
-import { createEmbeddings } from "@/lib/together-embeddings";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const MAX_CHUNKS = 140;
-const CHUNK_LENGTH = 1300;
-const CHUNK_OVERLAP = 180;
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB hard cap
+const MAX_CHARS = 60_000;               // ~15k tokens — fits Scout/4o-mini context easily
 
-interface ChunkDraft {
-  page: number;
-  content: string;
-}
-
-function chunkPage(content: string, page: number): ChunkDraft[] {
-  const normalized = content.replace(/\s+/g, " ").trim();
-  if (!normalized) return [];
-
-  const chunks: ChunkDraft[] = [];
-  for (let start = 0; start < normalized.length; start += CHUNK_LENGTH - CHUNK_OVERLAP) {
-    const end = Math.min(normalized.length, start + CHUNK_LENGTH);
-    chunks.push({ page, content: normalized.slice(start, end) });
-    if (end === normalized.length) break;
-  }
-  return chunks;
-}
-
+// Fast path: pull text from the PDF, normalize whitespace, return it as one
+// blob the chat route can stuff into a system message. Skips embeddings
+// entirely — the model handles retrieval implicitly.
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -43,27 +25,26 @@ export async function POST(request: Request) {
     }
 
     const { totalPages, text } = await extractText(new Uint8Array(await file.arrayBuffer()));
-    const pageChunks = text.flatMap((pageText, index) => chunkPage(pageText, index + 1));
+    const joined = (Array.isArray(text) ? text : [text])
+      .map(pageText => (pageText ?? "").replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n\n");
 
-    if (!pageChunks.length) {
+    if (!joined) {
       return Response.json({
-        error: "No selectable text was found. Scanned/image-only PDFs are not supported yet.",
+        error: "No selectable text was found. Scanned / image-only PDFs are not supported.",
       }, { status: 422 });
     }
 
-    const chunks = pageChunks.slice(0, MAX_CHUNKS);
-    const embeddings = await createEmbeddings(chunks.map(chunk => chunk.content));
-    const indexedPages = new Set(chunks.map(chunk => chunk.page)).size;
+    const truncated = joined.length > MAX_CHARS;
+    const out = truncated ? joined.slice(0, MAX_CHARS) : joined;
 
     return Response.json({
       name: file.name,
       totalPages,
-      indexedPages,
-      truncated: pageChunks.length > MAX_CHUNKS,
-      chunks: chunks.map((chunk, index) => ({
-        ...chunk,
-        embedding: embeddings[index],
-      })),
+      chars: joined.length,
+      truncated,
+      text: out,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not process PDF.";

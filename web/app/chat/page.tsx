@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Cpu, Zap, ArrowLeft, RotateCcw, Briefcase, GraduationCap, Sparkles } from "lucide-react";
 import ChatMessage, { type Message } from "@/components/ChatMessage";
-import ChatInput from "@/components/ChatInput";
+import ChatInput, { type PdfAttachment } from "@/components/ChatInput";
 import NebulaLayers from "@/components/NebulaLayers";
 import FlashcardDeck from "@/components/FlashcardDeck";
 
@@ -49,6 +49,7 @@ export default function ChatPage() {
   const [model, setModel] = useState<ModelId>("gpt-4o-mini");
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+  const [pdf, setPdf] = useState<PdfAttachment | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,7 +76,14 @@ export default function ChatPage() {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, session_id: sessionId, model, image: sentImage }),
+        body: JSON.stringify({
+          messages: history,
+          session_id: sessionId,
+          model,
+          image: sentImage,
+          pdfText: pdf?.text,
+          pdfName: pdf?.name,
+        }),
       });
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -118,7 +126,7 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }, [input, image, loading, messages, sessionId, model]);
+  }, [input, image, pdf, loading, messages, sessionId, model]);
 
   const isEmpty = messages.length === 0;
 
@@ -289,6 +297,8 @@ export default function ChatPage() {
             loading={loading}
             image={image}
             onImageChange={setImage}
+            pdf={pdf}
+            onPdfChange={setPdf}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
             AAOS Research · GPT-4o-mini · GPT-OSS 20B · Screenshots · Flashcards · Live Web

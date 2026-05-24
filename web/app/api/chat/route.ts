@@ -389,7 +389,9 @@ export async function POST(req: NextRequest) {
     messages: { role: string; content: string }[];
     model?: string;
     mode?: "flashcards";
-    image?: string; // base64 data URL for vision (screenshots)
+    image?: string;    // base64 data URL for vision (screenshots)
+    pdfText?: string;  // extracted PDF text, injected as system context
+    pdfName?: string;  // PDF filename for citation
   };
 
   // Flashcard mode forces the open-weight educational model and skips tools.
@@ -445,8 +447,23 @@ export async function POST(req: NextRequest) {
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: sysPrompt },
-    ...rawMessages,
   ];
+
+  // PDF context: inject extracted text as an additional system message so the
+  // model can cite it across every turn (sent fresh with each request).
+  if (body.pdfText && body.pdfText.trim()) {
+    const pdfName = body.pdfName ?? "document.pdf";
+    messages.push({
+      role: "system",
+      content:
+        `The user has attached a PDF named "${pdfName}". Use its contents to answer questions ` +
+        `about the document. When you reference facts from it, cite as (${pdfName}). ` +
+        `If a question is unrelated to the PDF, answer normally.\n\n` +
+        `=== PDF TEXT START ===\n${body.pdfText}\n=== PDF TEXT END ===`,
+    });
+  }
+
+  messages.push(...rawMessages);
 
   const enc = new TextEncoder();
 
