@@ -36,7 +36,7 @@ const MODELS = [
     id: "gpt-oss-20b",
     label: "GPT-OSS 20B",
     role: "Educational",
-    desc: "OpenAI open weights · schoolwork, PDF chat, flashcards",
+    desc: "OpenAI open weights · schoolwork, screenshots, PDF chat, flashcards",
     accent: "emerald",
   },
 ] as const;
@@ -51,6 +51,7 @@ export default function ChatPage() {
   const [model, setModel] = useState<ModelId>("gpt-4o-mini");
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [pdfDocument, setPdfDocument] = useState<IndexedPdf | null>(null);
+  const [image, setImage] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,10 +60,12 @@ export default function ChatPage() {
 
   const send = useCallback(async (question?: string) => {
     const q = (question ?? input).trim();
-    if (!q || loading) return;
+    if ((!q && !image) || loading) return;
     setInput("");
+    const sentImage = image;
+    setImage(null);
 
-    const userMsg: Message = { id: uuidv4(), role: "user", content: q };
+    const userMsg: Message = { id: uuidv4(), role: "user", content: q, imageUrl: sentImage ?? undefined };
     const aiId = uuidv4();
     const aiMsg: Message = { id: aiId, role: "assistant", content: "", streaming: true };
 
@@ -91,7 +94,7 @@ export default function ChatPage() {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, session_id: sessionId, model }),
+        body: JSON.stringify({ messages: history, session_id: sessionId, model, image: sentImage }),
       });
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -134,7 +137,7 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, sessionId, model, pdfDocument]);
+  }, [input, image, loading, messages, sessionId, model, pdfDocument]);
 
   const isEmpty = messages.length === 0;
 
@@ -312,9 +315,11 @@ export default function ChatPage() {
             onChange={setInput}
             onSubmit={() => send()}
             loading={loading}
+            image={image}
+            onImageChange={setImage}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · GPT-4o-mini · GPT-OSS 20B · PDF Chat · Flashcards · Live Web
+            AAOS Research · GPT-4o-mini · GPT-OSS 20B · Screenshots · PDF Chat · Flashcards · Live Web
           </p>
         </div>
       </footer>

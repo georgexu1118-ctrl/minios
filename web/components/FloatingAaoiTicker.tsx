@@ -19,7 +19,7 @@ const INTERVAL = "1d";
 
 export default function FloatingAaoiTicker() {
   const [data, setData] = useState<ChartData | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const timer = useRef<NodeJS.Timeout | null>(null);
 

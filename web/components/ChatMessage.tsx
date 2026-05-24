@@ -5,6 +5,7 @@ export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
   toolCalls?: { tool: string; args: Record<string, unknown> }[];
   streaming?: boolean;
 }
@@ -48,11 +49,21 @@ export default function ChatMessage({ msg }: { msg: Message }) {
           </div>
         )}
 
+        {/* Attached screenshot */}
+        {msg.imageUrl && (
+          <div className={`rounded-xl overflow-hidden border border-violet-500/30 mb-1 ${isUser ? "self-end" : "self-start"}`}
+            style={{ maxWidth: 260 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={msg.imageUrl} alt="Attached screenshot" className="w-full h-auto object-cover" />
+          </div>
+        )}
+
         <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap glass
           ${isUser
             ? "rounded-tr-sm border-violet-600/30 text-violet-100"
             : "rounded-tl-sm border-indigo-500/20 text-indigo-100"
-          }`}>
+          }
+          ${!msg.content && msg.imageUrl ? "hidden" : ""}`}>
           {msg.content}
           {msg.streaming && <span className="cursor-blink" />}
         </div>

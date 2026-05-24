@@ -1,66 +1,126 @@
 "use client";
 import { useRef, useEffect, FormEvent } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, ImagePlus, X } from "lucide-react";
 
 interface Props {
   value: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
   loading: boolean;
+  image?: string | null;
+  onImageChange?: (img: string | null) => void;
 }
 
-export default function ChatInput({ value, onChange, onSubmit, loading }: Props) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+export default function ChatInput({ value, onChange, onSubmit, loading, image, onImageChange }: Props) {
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  // Auto-resize
+  // Auto-resize textarea
   useEffect(() => {
-    if (ref.current) {
-      ref.current.style.height = "auto";
-      ref.current.style.height = Math.min(ref.current.scrollHeight, 160) + "px";
+    if (textRef.current) {
+      textRef.current.style.height = "auto";
+      textRef.current.style.height = Math.min(textRef.current.scrollHeight, 160) + "px";
     }
   }, [value]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!loading && value.trim()) onSubmit();
+    if (!loading && (value.trim() || image)) onSubmit();
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!loading && value.trim()) onSubmit();
+      if (!loading && (value.trim() || image)) onSubmit();
     }
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !onImageChange) return;
+    const reader = new FileReader();
+    reader.onload = () => onImageChange(reader.result as string);
+    reader.readAsDataURL(file);
+    // reset input so same file can be re-selected
+    e.target.value = "";
+  }
+
+  const canSend = !loading && (value.trim().length > 0 || !!image);
+
   return (
-    <form onSubmit={handleSubmit}
-      className="glass rounded-2xl flex items-end gap-2 p-2 glow-hover
-        border-violet-600/20 focus-within:border-violet-500/50
-        focus-within:shadow-[0_0_20px_rgba(124,58,237,0.25)]
-        transition-all duration-300">
-      <textarea
-        ref={ref}
-        rows={1}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        onKeyDown={handleKey}
-        placeholder="Ask minios AI anything…"
-        disabled={loading}
-        className="flex-1 bg-transparent resize-none outline-none text-sm
-          text-violet-100 placeholder-violet-400/50 px-2 py-1.5
-          max-h-40 leading-relaxed"
-      />
-      <button
-        type="submit"
-        disabled={loading || !value.trim()}
-        className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center
-          bg-violet-700 hover:bg-violet-600 disabled:opacity-40
-          transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed">
-        {loading
-          ? <Loader2 size={16} className="text-white animate-spin" />
-          : <Send size={16} className="text-white" />
-        }
-      </button>
-    </form>
+    <div className="flex flex-col gap-2">
+      {/* Image preview strip */}
+      {image && (
+        <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-violet-500/40 flex-shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image} alt="Attached screenshot" className="w-full h-full object-cover" />
+          {onImageChange && (
+            <button
+              type="button"
+              onClick={() => onImageChange(null)}
+              className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center
+                hover:bg-black/90 transition-colors cursor-pointer"
+              aria-label="Remove image">
+              <X size={10} className="text-white" />
+            </button>
+          )}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}
+        className="glass rounded-2xl flex items-end gap-2 p-2 glow-hover
+          border-violet-600/20 focus-within:border-violet-500/50
+          focus-within:shadow-[0_0_20px_rgba(124,58,237,0.25)]
+          transition-all duration-300">
+
+        {/* Hidden file input */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        {/* Image upload button */}
+        {onImageChange && (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={loading}
+            title="Attach screenshot"
+            className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center
+              text-violet-400/60 hover:text-violet-300 hover:bg-violet-800/40
+              disabled:opacity-40 transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed">
+            <ImagePlus size={16} />
+          </button>
+        )}
+
+        <textarea
+          ref={textRef}
+          rows={1}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder={image ? "Ask about this image… (or just send)" : "Ask minios AI anything…"}
+          disabled={loading}
+          className="flex-1 bg-transparent resize-none outline-none text-sm
+            text-violet-100 placeholder-violet-400/50 px-2 py-1.5
+            max-h-40 leading-relaxed"
+        />
+
+        <button
+          type="submit"
+          disabled={!canSend}
+          className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center
+            bg-violet-700 hover:bg-violet-600 disabled:opacity-40
+            transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed">
+          {loading
+            ? <Loader2 size={16} className="text-white animate-spin" />
+            : <Send size={16} className="text-white" />
+          }
+        </button>
+      </form>
+    </div>
   );
 }

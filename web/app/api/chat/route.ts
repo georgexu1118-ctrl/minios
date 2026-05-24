@@ -223,6 +223,7 @@ export async function POST(req: NextRequest) {
     messages: { role: string; content: string }[];
     model?: string;
     mode?: "flashcards";
+    image?: string; // base64 data URL for vision (screenshots)
   };
 
   // Flashcard mode forces the open-weight educational model and skips tools.
@@ -247,9 +248,28 @@ export async function POST(req: NextRequest) {
     ? SYSTEM_PROMPT_FLASHCARDS
     : config.mode === "educational" ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
+  const rawMessages = (body.messages ?? []).map(m => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+
+  // If a screenshot image was attached, upgrade the last user message to a vision content array
+  if (body.image && rawMessages.length > 0) {
+    const last = rawMessages[rawMessages.length - 1];
+    if (last.role === "user") {
+      (rawMessages[rawMessages.length - 1] as unknown as OpenAI.Chat.ChatCompletionMessageParam) = {
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: body.image } },
+          ...(last.content ? [{ type: "text" as const, text: last.content }] : []),
+        ],
+      };
+    }
+  }
+
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: sysPrompt },
-    ...(body.messages ?? []).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+    ...rawMessages,
   ];
 
   const enc = new TextEncoder();
