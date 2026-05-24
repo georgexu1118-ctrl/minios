@@ -254,12 +254,18 @@ type ProviderConfig = {
   mode: "general" | "educational" | "vision";
 };
 
-// Educational layer (gpt-oss-20b selected): Together AI first, Groq as last resort.
+// Educational layer (gpt-oss-20b selected): Groq LPU first (fastest), then
+// Fireworks AI (fast GPU), then Together AI as reliable fallback.
 const EDU_PROVIDERS: ProviderConfig[] = [
-  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "openai/gpt-oss-20b", mode: "educational" },
-  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "educational" },
-  { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", mode: "educational" },
-  { apiKeyEnv: "GROQ_API_KEY",    baseURL: "https://api.groq.com/openai/v1", modelId: "llama-3.1-8b-instant", mode: "educational" },
+  // Groq LPU inference: 500-800 tok/s, zero cold-start — confirmed live for gpt-oss-20b
+  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",          modelId: "openai/gpt-oss-20b", mode: "educational" },
+  // Fireworks AI: fast GPU cluster, add FIREWORKS_API_KEY in Vercel to enable
+  { apiKeyEnv: "FIREWORKS_API_KEY", baseURL: "https://api.fireworks.ai/inference/v1",    modelId: "accounts/fireworks/models/gpt-oss-20b", mode: "educational" },
+  // Together AI: reliable fallback with native gpt-oss-20b
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "openai/gpt-oss-20b", mode: "educational" },
+  // Together AI fast backup models if gpt-oss-20b is rate-limited everywhere
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "educational" },
+  { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", mode: "educational" },
 ];
 
 // General layer (gpt-4o-mini selected): OpenAI primary, Together + Groq backups.
