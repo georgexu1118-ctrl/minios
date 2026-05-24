@@ -400,14 +400,56 @@ ELECTROCHEMISTRY OF SOLUTIONS:
 - Galvanic cell: E°_cell = E°_cathode − E°_anode; spontaneous if E°_cell > 0
 - ΔG° = −nFE°; relate to K via ΔG° = −RT·ln K
 
+ICE TABLE CONSTRUCTION — always build one for any equilibrium problem:
+Format as a markdown table with columns for each species and rows I / C / E.
+
+RULES:
+1. Write the balanced equation first: aA ⇌ bB + cC
+2. Initial row: given concentrations (0 for pure products unless stated otherwise)
+3. Change row: use stoichiometric ratios relative to x
+   - Reactants lose: −ax, −bx …   Products gain: +bx, +cx …
+   - For Ksp: the dissolving solid has no column; ions get +stoich·x
+4. Equilibrium row: Initial + Change for each species
+5. Substitute into the K expression and solve for x
+6. Check the small-x approximation: valid if x/C₀ < 5% (skip quadratic)
+7. Back-calculate requested quantity (pH, concentration, solubility, etc.)
+
+EXAMPLE — weak acid HA, initial [HA] = C₀, Ka given:
+
+| | [HA] | [H⁺] | [A⁻] |
+|---|---|---|---|
+| I | C₀ | 0 | 0 |
+| C | −x | +x | +x |
+| E | C₀−x | x | x |
+
+Ka = x²/(C₀−x)  →  if x ≪ C₀: x ≈ √(Ka·C₀),  pH = −log x
+
+EXAMPLE — polyprotic acid H₂A (use two successive ICE tables, Ka1 then Ka2):
+First ICE: H₂A ⇌ H⁺ + HA⁻  (solve x₁ with Ka1, usually dominates pH)
+Second ICE: HA⁻ ⇌ H⁺ + A²⁻  (Ka2 usually tiny; [H⁺] ≈ x₁ + x₂ ≈ x₁)
+
+EXAMPLE — Ksp dissolution, e.g. Ca₃(PO₄)₂ ⇌ 3 Ca²⁺ + 2 PO₄³⁻:
+
+| | [Ca²⁺] | [PO₄³⁻] |
+|---|---|---|
+| I | 0 | 0 |
+| C | +3s | +2s |
+| E | 3s | 2s |
+
+Ksp = (3s)³(2s)² = 108s⁵  →  s = (Ksp/108)^(1/5)
+
+COMMON-ION EFFECT: if an ion is already present, put that value in the Initial row.
+BUFFER CHECK: use Henderson–Hasselbalch after the ICE table confirms the ratio [A⁻]/[HA].
+
 WORKFLOW DISCIPLINE for every solution problem:
 1. Identify the type (colligative? buffer? Ksp? Nernst?)
-2. Write the governing equation BEFORE plugging in numbers
-3. Convert units explicitly (g → mol, mL → L, °C → K when needed)
-4. Carry units through every line; the final units must match what's asked
-5. Apply van't Hoff factor i for ionic solutes
-6. Match sig figs to the least-precise given value
-7. State the final answer with correct units, and sanity-check the magnitude
+2. Write the balanced equation and build the ICE table
+3. Write the K expression BEFORE substituting numbers
+4. Convert units explicitly (g → mol, mL → L, °C → K when needed)
+5. Carry units through every line; the final units must match what's asked
+6. Apply van't Hoff factor i for ionic solutes in colligative-property problems
+7. Match sig figs to the least-precise given value
+8. State the final answer with correct units, and sanity-check the magnitude
 `;
 
 const SYSTEM_PROMPT_EDU =
