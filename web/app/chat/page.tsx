@@ -3,7 +3,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Cpu, Zap, ArrowLeft, RotateCcw, Briefcase, GraduationCap, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { Zap, ArrowLeft, RotateCcw, Briefcase, GraduationCap, Sparkles } from "lucide-react";
 import ChatMessage, { type Message } from "@/components/ChatMessage";
 import ChatInput, { type PdfAttachment } from "@/components/ChatInput";
 import NebulaLayers from "@/components/NebulaLayers";
@@ -144,9 +145,18 @@ export default function ChatPage() {
               hover:bg-violet-900/30 transition-colors">
             <ArrowLeft size={14} />
           </Link>
-          <div className="w-7 h-7 rounded-lg bg-violet-800/50 border border-violet-500/40
-            flex items-center justify-center animate-pulse-glow">
-            <Cpu size={13} className="text-violet-300" />
+          <div className="relative w-7 h-7 rounded-full overflow-hidden flex-shrink-0"
+            style={{
+              boxShadow: "0 0 8px rgba(139,92,246,0.5), 0 0 16px rgba(124,58,237,0.2)",
+              border: "1px solid rgba(139,92,246,0.45)",
+            }}>
+            <Image
+              src="/galileo-moon.webp"
+              alt="AAOS"
+              width={28} height={28}
+              className="w-full h-full object-cover object-top"
+              style={{ filter: "sepia(1) hue-rotate(222deg) saturate(2.2) brightness(0.72) contrast(1.25)", transform: "scale(1.08)" }}
+            />
           </div>
           <div>
             <h1 className="text-xs font-bold tracking-[0.15em] text-gradient uppercase">
@@ -250,9 +260,18 @@ export default function ChatPage() {
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center min-h-[55vh] text-center gap-8">
               <div className="animate-fade-in">
-                <div className="w-16 h-16 rounded-2xl bg-violet-900/40 border border-violet-600/30
-                  flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
-                  <Cpu size={28} className="text-violet-400" />
+                <div className="relative w-16 h-16 rounded-full overflow-hidden mx-auto mb-4"
+                  style={{
+                    boxShadow: "0 0 24px rgba(139,92,246,0.5), 0 0 50px rgba(124,58,237,0.22)",
+                    border: "1.5px solid rgba(139,92,246,0.50)",
+                  }}>
+                  <Image
+                    src="/galileo-moon.webp"
+                    alt="AAOS"
+                    width={64} height={64}
+                    className="w-full h-full object-cover object-top"
+                    style={{ filter: "sepia(1) hue-rotate(222deg) saturate(2.0) brightness(0.68) contrast(1.3)", transform: "scale(1.06)" }}
+                  />
                 </div>
                 <h2 className="text-2xl font-bold text-gradient mb-2">
                   AAOS Research
