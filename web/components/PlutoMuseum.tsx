@@ -117,30 +117,196 @@ const MOONS: Moon[] = [
   },
 ];
 
-// Body component for any spherical world (Pluto + moons + detail close-up).
+// Realistic Pluto body — layered terrain zones, Sputnik Planitia heart, blue N₂ atmosphere.
+function PlutoBody({ size }: { size: number }) {
+  const blur = (f: number) => `${Math.max(1, size * f)}px`;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      {/* Blue nitrogen atmosphere ring — visible outside the disc */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          inset: `-${size * 0.045}px`,
+          background: "transparent",
+          boxShadow:
+            `0 0 ${size * 0.14}px ${size * 0.05}px rgba(34,211,238,0.22),` +
+            `0 0 ${size * 0.06}px rgba(34,211,238,0.35)`,
+        }}
+      />
+
+      {/* Main sphere */}
+      <div
+        className="absolute inset-0 rounded-full overflow-hidden"
+        style={{
+          /* Base tholin reddish-brown terrain, lit from upper-left */
+          background:
+            "radial-gradient(circle at 36% 34%, #c47e52 0%, #a05534 18%, #7a3a1c 36%, #4e2008 58%, #1e0a02 80%, #000 100%)",
+          boxShadow:
+            `0 0 ${size * 0.5}px rgba(160,85,52,0.28),` +
+            `0 0 ${size * 1.0}px rgba(160,85,52,0.10),` +
+            `inset -${size * 0.22}px -${size * 0.12}px ${size * 0.35}px rgba(0,0,0,0.75),` +
+            `inset ${size * 0.04}px ${size * 0.04}px ${size * 0.18}px rgba(255,200,160,0.05)`,
+        }}
+      >
+        {/* Mid-latitude lighter ochre band */}
+        <div
+          className="absolute"
+          style={{
+            top: "18%", left: "0%",
+            width: "75%", height: "40%",
+            background: "radial-gradient(ellipse at 45% 50%, rgba(196,148,80,0.30) 0%, rgba(164,110,50,0.12) 55%, transparent 80%)",
+            filter: `blur(${blur(0.06)})`,
+          }}
+        />
+
+        {/* Cthulhu Regio — the dark equatorial "whale" patch */}
+        <div
+          className="absolute"
+          style={{
+            top: "48%", left: "-4%",
+            width: "56%", height: "30%",
+            background:
+              "radial-gradient(ellipse at 40% 50%, #0e0502 0%, #1c0a04 40%, #2a1208 65%, transparent 85%)",
+            filter: `blur(${blur(0.04)})`,
+            opacity: 0.88,
+          }}
+        />
+
+        {/* Sputnik Planitia — right lobe of heart (main nitrogen ice basin) */}
+        <div
+          className="absolute"
+          style={{
+            top: "30%", left: "40%",
+            width: "46%", height: "40%",
+            background:
+              "radial-gradient(ellipse at 38% 45%, #f8f2e8 0%, #ede2cc 28%, #d8c8a8 55%, transparent 80%)",
+            filter: `blur(${blur(0.018)})`,
+            transform: "rotate(-12deg)",
+            opacity: 0.94,
+          }}
+        />
+
+        {/* Tombaugh Regio left lobe — slightly dimmer arm of the heart */}
+        <div
+          className="absolute"
+          style={{
+            top: "22%", left: "30%",
+            width: "24%", height: "30%",
+            background:
+              "radial-gradient(ellipse at 55% 60%, #eeddc8 0%, #d8c4a0 40%, transparent 75%)",
+            filter: `blur(${blur(0.024)})`,
+            transform: "rotate(14deg)",
+            opacity: 0.82,
+          }}
+        />
+
+        {/* Heart connector bridge — joins the two lobes */}
+        <div
+          className="absolute"
+          style={{
+            top: "38%", left: "36%",
+            width: "16%", height: "14%",
+            background: "radial-gradient(ellipse, rgba(220,200,168,0.75) 0%, transparent 70%)",
+            filter: `blur(${blur(0.028)})`,
+            opacity: 0.70,
+          }}
+        />
+
+        {/* Surface banding — scoured terrain texture */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(162deg, transparent 0%, rgba(60,20,8,0.18) 4%, transparent 8%, rgba(180,120,60,0.07) 12%, transparent 17%)",
+            mixBlendMode: "overlay",
+          }}
+        />
+
+        {/* Northern polar bright zone (methane ice cap) */}
+        <div
+          className="absolute"
+          style={{
+            top: "-10%", left: "22%",
+            width: "56%", height: "34%",
+            background:
+              "radial-gradient(ellipse at 50% 55%, rgba(240,220,190,0.22) 0%, transparent 65%)",
+            filter: `blur(${blur(0.05)})`,
+          }}
+        />
+
+        {/* Blue nitrogen atmospheric limb — inner edge glow */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 50%, transparent 44%, rgba(34,211,238,0.04) 58%, rgba(34,211,238,0.10) 72%, rgba(103,232,249,0.16) 84%, rgba(34,211,238,0.08) 93%, transparent 100%)",
+          }}
+        />
+
+        {/* Terminator — shadow from upper-left light source */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 68% 58%, transparent 28%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.78) 88%)",
+          }}
+        />
+
+        {/* Primary specular highlight */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            top: `${size * 0.09}px`,
+            left: `${size * 0.22}px`,
+            width: size * 0.20,
+            height: size * 0.13,
+            background:
+              "radial-gradient(circle, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 55%, transparent 78%)",
+            filter: `blur(${blur(0.011)})`,
+          }}
+        />
+
+        {/* Secondary soft sheen near heart */}
+        <div
+          className="absolute"
+          style={{
+            top: `${size * 0.32}px`,
+            left: `${size * 0.42}px`,
+            width: size * 0.28,
+            height: size * 0.14,
+            background: "radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)",
+            filter: `blur(${blur(0.02)})`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Generic spherical body for moons.
 function Body({
-  size, color, highlight, shadow, hasHeart = false,
+  size, color, highlight, shadow,
 }: {
-  size: number; color: string; highlight: string; shadow: string; hasHeart?: boolean;
+  size: number; color: string; highlight: string; shadow: string;
 }) {
   return (
     <div
-      className="relative rounded-full"
+      className="relative rounded-full overflow-hidden"
       style={{
         width: size, height: size,
-        background: `radial-gradient(circle at 35% 30%, ${highlight} 0%, ${color} 30%, ${color} 50%, ${shadow} 85%, #000 100%)`,
+        background: `radial-gradient(circle at 35% 30%, ${highlight} 0%, ${color} 28%, ${color} 52%, ${shadow} 82%, #000 100%)`,
         boxShadow:
-          `inset -${size * 0.18}px -${size * 0.10}px ${size * 0.30}px rgba(0,0,0,0.7),` +
-          `inset ${size * 0.05}px ${size * 0.05}px ${size * 0.20}px rgba(255,255,255,0.06),` +
+          `inset -${size * 0.18}px -${size * 0.10}px ${size * 0.30}px rgba(0,0,0,0.72),` +
+          `inset ${size * 0.05}px ${size * 0.05}px ${size * 0.18}px rgba(255,255,255,0.06),` +
           `0 0 ${size * 0.5}px ${color}33,` +
           `0 0 ${size * 1.0}px ${color}1a`,
       }}
     >
-      {/* Subtle surface bands */}
+      {/* Subtle surface banding */}
       <div
-        className="absolute inset-0 rounded-full overflow-hidden"
+        className="absolute inset-0"
         style={{
-          backgroundImage: `repeating-linear-gradient(170deg, transparent 0%, ${shadow}22 6%, transparent 12%, ${highlight}11 18%, transparent 24%)`,
+          backgroundImage: `repeating-linear-gradient(170deg, transparent 0%, ${shadow}22 5%, transparent 10%, ${highlight}0f 16%, transparent 22%)`,
           mixBlendMode: "overlay",
         }}
       />
@@ -152,26 +318,17 @@ function Body({
           left: `${size * 0.22}px`,
           width: size * 0.22,
           height: size * 0.14,
-          background: `radial-gradient(circle, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.08) 50%, transparent 75%)`,
-          filter: `blur(${Math.max(2, size * 0.012)}px)`,
+          background: `radial-gradient(circle, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.08) 52%, transparent 76%)`,
+          filter: `blur(${Math.max(1, size * 0.012)}px)`,
         }}
       />
-      {/* Sputnik Planitia "heart" — only on Pluto */}
-      {hasHeart && (
-        <div
-          className="absolute"
-          style={{
-            top: `${size * 0.50}px`,
-            left: `${size * 0.32}px`,
-            width: size * 0.34,
-            height: size * 0.24,
-            background: `radial-gradient(ellipse at 30% 40%, #f5e6d3 0%, #e6c8a8 40%, transparent 75%)`,
-            opacity: 0.45,
-            filter: "blur(4px)",
-            transform: "rotate(-12deg)",
-          }}
-        />
-      )}
+      {/* Terminator */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(circle at 70% 55%, transparent 35%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0.80) 92%)",
+        }}
+      />
     </div>
   );
 }
@@ -322,13 +479,14 @@ export default function PlutoMuseum() {
       className="relative w-full overflow-hidden bg-black"
       style={{ minHeight: "100vh" }}
     >
-      {/* Deep cosmos background — warmer Plutonian glow */}
+      {/* Deep cosmos background */}
       <div className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 25% 15%, rgba(34,211,238,0.07) 0%, transparent 45%)," +
-            "radial-gradient(ellipse at 85% 85%, rgba(164,113,72,0.08) 0%, transparent 50%)," +
-            "radial-gradient(ellipse at 50% 50%, rgba(20,12,8,1) 0%, #000 75%)",
+            "radial-gradient(ellipse at 22% 14%, rgba(34,211,238,0.06) 0%, transparent 42%)," +
+            "radial-gradient(ellipse at 80% 80%, rgba(160,85,52,0.07) 0%, transparent 48%)," +
+            "radial-gradient(ellipse at 60% 20%, rgba(103,232,249,0.03) 0%, transparent 35%)," +
+            "radial-gradient(ellipse at 50% 50%, rgba(18,8,4,1) 0%, #000 70%)",
         }}
       />
 
@@ -389,37 +547,43 @@ export default function PlutoMuseum() {
           animation: "stage-dolly-in 6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         }}
       >
-        {/* Inner atmospheric halo — close to Pluto */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          style={{
-            width: plutoSize * 2.2,
-            height: plutoSize * 2.2,
-            background: "radial-gradient(circle, rgba(232,200,168,0.18) 0%, rgba(164,113,72,0.10) 35%, transparent 65%)",
-            filter: "blur(30px)",
-            animation: "halo-breathe 8s ease-in-out infinite",
-          }}
-        />
-
-        {/* Outer system glow */}
+        {/* Outer warm tholin glow */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{
             width: plutoSize * 5,
             height: plutoSize * 5,
-            background: "radial-gradient(circle, rgba(164,113,72,0.06) 0%, rgba(8,145,178,0.04) 30%, transparent 65%)",
-            filter: "blur(60px)",
+            background: "radial-gradient(circle, rgba(160,85,52,0.07) 0%, rgba(8,145,178,0.03) 32%, transparent 65%)",
+            filter: "blur(70px)",
           }}
         />
 
-        {/* Pluto — center, larger and heavier */}
+        {/* Inner warm halo — breathes gently */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{
+            width: plutoSize * 2.4,
+            height: plutoSize * 2.4,
+            background: "radial-gradient(circle, rgba(200,140,80,0.14) 0%, rgba(160,85,52,0.07) 38%, transparent 65%)",
+            filter: "blur(36px)",
+            animation: "halo-breathe 8s ease-in-out infinite",
+          }}
+        />
+
+        {/* Blue atmospheric backscatter halo */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{
+            width: plutoSize * 1.28,
+            height: plutoSize * 1.28,
+            borderRadius: "50%",
+            background: "transparent",
+            boxShadow: `0 0 ${plutoSize * 0.18}px ${plutoSize * 0.06}px rgba(34,211,238,0.18), 0 0 ${plutoSize * 0.08}px rgba(34,211,238,0.28)`,
+            animation: "halo-breathe 10s ease-in-out 2s infinite",
+          }}
+        />
+
+        {/* Pluto — center */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
           style={{ animation: "pluto-float 14s ease-in-out infinite" }}>
-          <Body
-            size={plutoSize}
-            color="#a47148"
-            highlight="#e6c8a8"
-            shadow="#1a0e08"
-            hasHeart
-          />
+          <PlutoBody size={plutoSize} />
         </div>
 
         {/* Pluto label */}
