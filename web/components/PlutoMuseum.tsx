@@ -37,11 +37,11 @@ const MOONS: Moon[] = [
     color: "#a8a29e",
     highlight: "#e7e5e4",
     shadow: "#3a3633",
-    size: 44,
-    orbit: 210,
-    duration: 75,
+    size: 90,
+    orbit: 340,
+    duration: 140,
     startAngle: 12,
-    tilt: -3,
+    tilt: -4,
   },
   {
     name: "Styx",
@@ -55,11 +55,11 @@ const MOONS: Moon[] = [
     color: "#a3a3a3",
     highlight: "#d4d4d4",
     shadow: "#2a2a2a",
-    size: 9,
-    orbit: 290,
-    duration: 110,
+    size: 26,
+    orbit: 440,
+    duration: 200,
     startAngle: 84,
-    tilt: 2,
+    tilt: 3,
   },
   {
     name: "Nix",
@@ -73,11 +73,11 @@ const MOONS: Moon[] = [
     color: "#c4b5a0",
     highlight: "#ede4d4",
     shadow: "#3e342a",
-    size: 16,
-    orbit: 350,
-    duration: 140,
+    size: 42,
+    orbit: 540,
+    duration: 260,
     startAngle: 156,
-    tilt: -1,
+    tilt: -2,
   },
   {
     name: "Kerberos",
@@ -91,11 +91,11 @@ const MOONS: Moon[] = [
     color: "#78716c",
     highlight: "#a8a29e",
     shadow: "#1c1917",
-    size: 11,
-    orbit: 415,
-    duration: 185,
+    size: 32,
+    orbit: 640,
+    duration: 340,
     startAngle: 228,
-    tilt: 4,
+    tilt: 5,
   },
   {
     name: "Hydra",
@@ -109,11 +109,11 @@ const MOONS: Moon[] = [
     color: "#d6d3d1",
     highlight: "#f5f5f4",
     shadow: "#44403c",
-    size: 16,
-    orbit: 485,
-    duration: 230,
+    size: 44,
+    orbit: 750,
+    duration: 420,
     startAngle: 300,
-    tilt: -2,
+    tilt: -3,
   },
 ];
 
@@ -294,10 +294,11 @@ export default function PlutoMuseum() {
   useEffect(() => {
     function update() {
       const w = window.innerWidth;
-      if (w < 640) setScale(0.45);
-      else if (w < 900) setScale(0.7);
-      else if (w < 1200) setScale(0.85);
-      else setScale(1);
+      if (w < 640) setScale(0.38);
+      else if (w < 900) setScale(0.6);
+      else if (w < 1200) setScale(0.8);
+      else if (w < 1600) setScale(0.95);
+      else setScale(1.1);
     }
     update();
     window.addEventListener("resize", update);
@@ -313,7 +314,7 @@ export default function PlutoMuseum() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const plutoSize = 130 * scale;
+  const plutoSize = 240 * scale;
 
   return (
     <section
@@ -321,79 +322,110 @@ export default function PlutoMuseum() {
       className="relative w-full overflow-hidden bg-black"
       style={{ minHeight: "100vh" }}
     >
-      {/* Deep cosmos background */}
+      {/* Deep cosmos background — warmer Plutonian glow */}
       <div className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 30% 20%, rgba(34,211,238,0.06) 0%, transparent 50%)," +
-            "radial-gradient(ellipse at 80% 80%, rgba(164,113,72,0.05) 0%, transparent 50%)," +
-            "radial-gradient(ellipse at 50% 50%, rgba(8,8,20,1) 0%, #000 80%)",
+            "radial-gradient(ellipse at 25% 15%, rgba(34,211,238,0.07) 0%, transparent 45%)," +
+            "radial-gradient(ellipse at 85% 85%, rgba(164,113,72,0.08) 0%, transparent 50%)," +
+            "radial-gradient(ellipse at 50% 50%, rgba(20,12,8,1) 0%, #000 75%)",
+        }}
+      />
+
+      {/* Distant sun — a single bright point in the upper-left, 5.9 billion km away */}
+      <div className="absolute pointer-events-none"
+        style={{
+          top: "12%", left: "18%",
+          width: 4, height: 4,
+          borderRadius: "50%",
+          background: "#fef3c7",
+          boxShadow: "0 0 12px rgba(254,243,199,0.9), 0 0 40px rgba(254,243,199,0.4), 0 0 80px rgba(254,243,199,0.15)",
         }}
       />
 
       {/* Drifting particles */}
       <CosmicDust />
 
-      {/* Subtle vignette */}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ boxShadow: "inset 0 0 200px 50px rgba(0,0,0,0.85)" }}
+      {/* Cinematic letterbox bars */}
+      <div className="absolute top-0 inset-x-0 pointer-events-none z-20"
+        style={{ height: "60px", background: "linear-gradient(to bottom, rgba(0,0,0,0.95), transparent)" }}
+      />
+      <div className="absolute bottom-0 inset-x-0 pointer-events-none z-20"
+        style={{ height: "100px", background: "linear-gradient(to top, rgba(0,0,0,0.95), transparent)" }}
       />
 
-      {/* Title sequence */}
-      <div className="relative z-10 pt-16 md:pt-20 text-center px-4">
-        <p className="text-[10px] md:text-[11px] tracking-[0.5em] text-cyan-400/50 uppercase mb-3 animate-fade-in">
+      {/* Deep vignette */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ boxShadow: "inset 0 0 300px 80px rgba(0,0,0,0.95)" }}
+      />
+
+      {/* Title sequence — minimal, recedes to let the scene breathe */}
+      <div className="relative z-10 pt-20 md:pt-24 text-center px-4">
+        <p className="text-[9px] md:text-[10px] tracking-[0.6em] text-cyan-400/40 uppercase mb-4 animate-fade-in">
           The Pluto System
         </p>
-        <h2 className="text-3xl md:text-5xl lg:text-6xl font-light text-white tracking-wide animate-fade-in-delay-1"
-          style={{ fontFamily: "'Inter', sans-serif", letterSpacing: "0.02em" }}>
+        <h2 className="text-2xl md:text-4xl font-extralight text-white/90 tracking-wide animate-fade-in-delay-1"
+          style={{ fontFamily: "'Inter', sans-serif", letterSpacing: "0.04em" }}>
           A Museum of <span style={{
-            background: "linear-gradient(135deg, #a8a29e 0%, #d4a574 50%, #67e8f9 100%)",
+            background: "linear-gradient(135deg, #d4a574 0%, #e6c8a8 50%, #67e8f9 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
             fontStyle: "italic",
+            fontWeight: 300,
           }}>Distant Moons</span>
         </h2>
-        <p className="text-violet-300/40 text-xs md:text-sm mt-4 max-w-md mx-auto animate-fade-in-delay-2 font-light tracking-wide">
-          Five worlds dance around a frozen heart, 5.9 billion kilometres from the Sun.
-          Hover. Click. Step closer.
+        <p className="text-violet-300/30 text-[11px] md:text-xs mt-3 max-w-sm mx-auto animate-fade-in-delay-2 font-light tracking-[0.15em]">
+          Five worlds dance around a frozen heart. Click to step closer.
         </p>
       </div>
 
-      {/* Stage */}
+      {/* Stage — slow camera dolly-in for cinematic entrance */}
       <div
         className="relative w-full flex justify-center items-center"
         style={{
-          height: `${720 * scale + 100}px`,
-          perspective: "1200px",
+          height: `${1100 * scale + 120}px`,
+          perspective: "1800px",
+          animation: "stage-dolly-in 6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         }}
       >
-        {/* Atmospheric halo */}
+        {/* Inner atmospheric halo — close to Pluto */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{
-            width: plutoSize * 4,
-            height: plutoSize * 4,
-            background: "radial-gradient(circle, rgba(164,113,72,0.12) 0%, rgba(8,145,178,0.06) 30%, transparent 65%)",
-            filter: "blur(40px)",
+            width: plutoSize * 2.2,
+            height: plutoSize * 2.2,
+            background: "radial-gradient(circle, rgba(232,200,168,0.18) 0%, rgba(164,113,72,0.10) 35%, transparent 65%)",
+            filter: "blur(30px)",
+            animation: "halo-breathe 8s ease-in-out infinite",
           }}
         />
 
-        {/* Pluto — center */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ animation: "pluto-float 12s ease-in-out infinite" }}>
+        {/* Outer system glow */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{
+            width: plutoSize * 5,
+            height: plutoSize * 5,
+            background: "radial-gradient(circle, rgba(164,113,72,0.06) 0%, rgba(8,145,178,0.04) 30%, transparent 65%)",
+            filter: "blur(60px)",
+          }}
+        />
+
+        {/* Pluto — center, larger and heavier */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
+          style={{ animation: "pluto-float 14s ease-in-out infinite" }}>
           <Body
             size={plutoSize}
             color="#a47148"
             highlight="#e6c8a8"
-            shadow="#2a1810"
+            shadow="#1a0e08"
             hasHeart
           />
         </div>
 
         {/* Pluto label */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 pointer-events-none"
-          style={{ marginTop: plutoSize * 0.65 + 12 }}>
-          <p className="text-center text-[10px] font-mono tracking-[0.4em] text-amber-200/40 uppercase">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 pointer-events-none z-10"
+          style={{ marginTop: plutoSize * 0.62 + 16 }}>
+          <p className="text-center text-[10px] font-mono tracking-[0.5em] text-amber-200/35 uppercase">
             Pluto
           </p>
         </div>

@@ -164,6 +164,14 @@ html, body {
   0%, 100% { transform: scale(1);     }
   50%       { transform: scale(1.025); }
 }
+@keyframes halo-breathe {
+  0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1);     }
+  50%       { opacity: 1;   transform: translate(-50%, -50%) scale(1.05);  }
+}
+@keyframes stage-dolly-in {
+  from { transform: scale(0.82); opacity: 0; filter: blur(8px); }
+  to   { transform: scale(1);    opacity: 1; filter: blur(0);   }
+}
 
 /* ── Animation classes ───────────────────────────────────────────── */
 .animate-spin-slow          { animation: spin-slow 25s linear infinite; }
