@@ -202,14 +202,38 @@ const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: str
   },
 };
 
-// When an image is uploaded, override to a vision-capable model on Together AI.
-// Llama-4-Maverick: multimodal, strong at undergrad STEM, $0.40/M input tokens.
-const VISION_MODEL = {
-  apiKeyEnv: "TOGETHER_API_KEY",
-  baseURL: "https://api.together.xyz/v1",
-  modelId: "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
-  mode: "vision" as const,
+// When an image is uploaded, route to a vision-capable model.
+// Try Groq first (LPU inference, ~5-10× faster than GPU providers), then
+// fall back to Together AI if Groq isn't configured. Both run Llama-4-Maverick
+// (17Bx128 MoE) — multimodal, strong at undergrad-level STEM and humanities.
+type ProviderConfig = {
+  apiKeyEnv: string;
+  baseURL?: string;
+  modelId: string;
+  mode: "general" | "educational" | "vision";
 };
+
+const VISION_PROVIDERS: ProviderConfig[] = [
+  {
+    apiKeyEnv: "GROQ_API_KEY",
+    baseURL: "https://api.groq.com/openai/v1",
+    modelId: "meta-llama/llama-4-maverick-17b-128e-instruct",
+    mode: "vision",
+  },
+  {
+    apiKeyEnv: "TOGETHER_API_KEY",
+    baseURL: "https://api.together.xyz/v1",
+    modelId: "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    mode: "vision",
+  },
+];
+
+function pickVisionProvider(): ProviderConfig | null {
+  for (const p of VISION_PROVIDERS) {
+    if (process.env[p.apiKeyEnv]) return p;
+  }
+  return null;
+}
 
 const SYSTEM_PROMPT_EDU =
   "You are AAOS Study — an educational tutor running on the AAOS Autonomous AI OS. " +
@@ -220,14 +244,12 @@ const SYSTEM_PROMPT_EDU =
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set.";
 
 const SYSTEM_PROMPT_VISION =
-  "You are AAOS Scholar — an expert academic solver running on the AAOS Autonomous AI OS. " +
-  "The user has uploaded a screenshot of a problem or question. Your job is to solve it completely and correctly. " +
-  "Cover all levels up to and including undergraduate university (calculus, linear algebra, ODEs, probability, " +
-  "statistics, physics, chemistry, biology, computer science, economics, history, literature analysis, etc.). " +
-  "Always: (1) identify what type of problem it is, (2) write out the full solution step-by-step showing all work, " +
-  "(3) box or clearly state the final answer. Use LaTeX-style notation for math where helpful (e.g. x^2, sqrt(), integrals). " +
-  "Be rigorous and complete — show every step. If multiple approaches exist, use the most straightforward one. " +
-  "Never skip steps. Never say 'I cannot see the image' — you can see it.";
+  "You are AAOS Scholar — an expert academic solver. The user uploaded a screenshot of a problem. " +
+  "Solve it correctly and concisely. Cover up to undergraduate level (calculus, linear algebra, ODEs, " +
+  "probability, stats, physics, chemistry, biology, CS, economics, humanities). " +
+  "Format: (1) one short line naming the topic, (2) numbered solution steps — only the essential math, " +
+  "no filler prose, (3) **Final answer:** on its own line. Use LaTeX-style notation (x^2, sqrt(), integrals). " +
+  "Be terse. Skip restating the question. Never say you cannot see the image — you can.";
 
 const SYSTEM_PROMPT_FLASHCARDS =
   "You are an exam-prep flashcard generator. " +
@@ -251,11 +273,12 @@ export async function POST(req: NextRequest) {
   const isFlashcards = body.mode === "flashcards";
   const hasImage = !!body.image;
 
-  // When a screenshot is attached: always use vision-capable Llama-4-Maverick on Together.
-  // gpt-oss-20b (text-only) cannot process images; gpt-4o-mini can but Together is cheaper.
+  // When a screenshot is attached: route to a vision model.
+  // Prefer Groq (LPU, fastest), fall back to Together AI. gpt-4o-mini also supports
+  // vision but Groq/Together-hosted open-weight models are dramatically cheaper.
   const requested = isFlashcards ? "gpt-oss-20b" : (body.model ?? "gpt-4o-mini");
-  const config = hasImage && requested !== "gpt-4o-mini"
-    ? VISION_MODEL
+  const config: ProviderConfig = hasImage && requested !== "gpt-4o-mini"
+    ? (pickVisionProvider() ?? VISION_PROVIDERS[0])
     : (MODELS[requested] ?? MODELS["gpt-4o-mini"]);
 
   const apiKey = process.env[config.apiKeyEnv];
@@ -353,9 +376,10 @@ export async function POST(req: NextRequest) {
         }
 
         // ── REGULAR CHAT MODE ────────────────────────────────────────
-        // Vision mode: skip tool calls (focus on solving), allow more tokens for full solutions.
+        // Vision mode: skip tool calls (focus on solving), trim tokens for fast streaming.
+        // 1200 is enough for ~95% of undergrad problems with concise step-by-step work.
         const useTools = !hasImage;
-        const maxTok = hasImage ? 2000 : 600;
+        const maxTok = hasImage ? 1200 : 600;
 
         for (let round = 0; round < 4; round++) {
           const chunks = await openai.chat.completions.create({
