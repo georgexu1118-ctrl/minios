@@ -26,9 +26,9 @@ const SUGGESTED = [
 const MODELS = [
   {
     id: "gpt-4o-mini",
-    label: "GPT-4o-mini",
+    label: "Llama 3.3 70B",
     role: "General",
-    desc: "OpenAI closed weights · stocks, news, code, everyday Q&A",
+    desc: "Meta open weights · Groq LPU · stocks, news, code, everyday Q&A",
     accent: "violet",
   },
   {
@@ -281,7 +281,7 @@ export default function ChatPage() {
                   current events, science, or anything in the universe.
                 </p>
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
-                  Pick <span className="text-white font-semibold">GPT-4o-mini</span> (closed, general) or
+                  Pick <span className="text-white font-semibold">Llama 3.3 70B</span> (Groq LPU, general) or
                   <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork).
                   GPT-OSS supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
                 </p>
@@ -320,7 +320,7 @@ export default function ChatPage() {
             onPdfChange={setPdf}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · GPT-4o-mini · GPT-OSS 20B · Screenshots · Flashcards · Live Web
+            AAOS Research · Llama 3.3 70B · GPT-OSS 20B · Screenshots · Flashcards · Live Web
           </p>
         </div>
       </footer>
