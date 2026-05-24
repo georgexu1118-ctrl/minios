@@ -186,7 +186,9 @@ const SYSTEM_PROMPT =
 // "gpt-4o-mini"  → OpenAI proprietary, general-purpose, fastest, cheapest
 // "gpt-oss-20b"  → OpenAI open-weight model on Together AI; tuned via prompt
 //                  for educational use (school work, study, flashcards)
-const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string; mode: "general" | "educational" }> = {
+// VISION_MODEL   → Llama-4-Maverick on Together AI: multimodal, used whenever
+//                  an image is attached — gpt-oss-20b has no vision support
+const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: string; mode: "general" | "educational" | "vision" }> = {
   "gpt-4o-mini": {
     apiKeyEnv: "OPENAI_API_KEY",
     modelId: "gpt-4o-mini",
@@ -200,6 +202,15 @@ const MODELS: Record<string, { apiKeyEnv: string; baseURL?: string; modelId: str
   },
 };
 
+// When an image is uploaded, override to a vision-capable model on Together AI.
+// Llama-4-Maverick: multimodal, strong at undergrad STEM, $0.40/M input tokens.
+const VISION_MODEL = {
+  apiKeyEnv: "TOGETHER_API_KEY",
+  baseURL: "https://api.together.xyz/v1",
+  modelId: "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+  mode: "vision" as const,
+};
+
 const SYSTEM_PROMPT_EDU =
   "You are AAOS Study — an educational tutor running on the AAOS Autonomous AI OS. " +
   "Specialize in school subjects: math, biology, chemistry, physics, history, literature, computer science. " +
@@ -207,6 +218,16 @@ const SYSTEM_PROMPT_EDU =
   "When the student asks a homework-style question, walk them through the reasoning instead of just giving the final answer. " +
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set.";
+
+const SYSTEM_PROMPT_VISION =
+  "You are AAOS Scholar — an expert academic solver running on the AAOS Autonomous AI OS. " +
+  "The user has uploaded a screenshot of a problem or question. Your job is to solve it completely and correctly. " +
+  "Cover all levels up to and including undergraduate university (calculus, linear algebra, ODEs, probability, " +
+  "statistics, physics, chemistry, biology, computer science, economics, history, literature analysis, etc.). " +
+  "Always: (1) identify what type of problem it is, (2) write out the full solution step-by-step showing all work, " +
+  "(3) box or clearly state the final answer. Use LaTeX-style notation for math where helpful (e.g. x^2, sqrt(), integrals). " +
+  "Be rigorous and complete — show every step. If multiple approaches exist, use the most straightforward one. " +
+  "Never skip steps. Never say 'I cannot see the image' — you can see it.";
 
 const SYSTEM_PROMPT_FLASHCARDS =
   "You are an exam-prep flashcard generator. " +
@@ -228,13 +249,21 @@ export async function POST(req: NextRequest) {
 
   // Flashcard mode forces the open-weight educational model and skips tools.
   const isFlashcards = body.mode === "flashcards";
+  const hasImage = !!body.image;
+
+  // When a screenshot is attached: always use vision-capable Llama-4-Maverick on Together.
+  // gpt-oss-20b (text-only) cannot process images; gpt-4o-mini can but Together is cheaper.
   const requested = isFlashcards ? "gpt-oss-20b" : (body.model ?? "gpt-4o-mini");
-  const config = MODELS[requested] ?? MODELS["gpt-4o-mini"];
+  const config = hasImage && requested !== "gpt-4o-mini"
+    ? VISION_MODEL
+    : (MODELS[requested] ?? MODELS["gpt-4o-mini"]);
 
   const apiKey = process.env[config.apiKeyEnv];
   if (!apiKey) {
     const friendlyMap: Record<string, string> = {
-      "TOGETHER_API_KEY": "gpt-oss-20b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel.",
+      "TOGETHER_API_KEY": hasImage
+        ? "Image solving requires TOGETHER_API_KEY in Vercel environment variables."
+        : "gpt-oss-20b requires TOGETHER_API_KEY in environment. Switch to gpt-4o-mini or add the key in Vercel.",
     };
     const friendly = friendlyMap[config.apiKeyEnv] ?? `${config.apiKeyEnv} not configured`;
     return new Response(JSON.stringify({ error: friendly }), {
@@ -246,6 +275,7 @@ export async function POST(req: NextRequest) {
   const openai = new OpenAI({ apiKey, baseURL: config.baseURL });
   const sysPrompt = isFlashcards
     ? SYSTEM_PROMPT_FLASHCARDS
+    : hasImage ? SYSTEM_PROMPT_VISION
     : config.mode === "educational" ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
   const rawMessages = (body.messages ?? []).map(m => ({
@@ -323,9 +353,17 @@ export async function POST(req: NextRequest) {
         }
 
         // ── REGULAR CHAT MODE ────────────────────────────────────────
+        // Vision mode: skip tool calls (focus on solving), allow more tokens for full solutions.
+        const useTools = !hasImage;
+        const maxTok = hasImage ? 2000 : 600;
+
         for (let round = 0; round < 4; round++) {
           const chunks = await openai.chat.completions.create({
-            model, messages, tools: TOOLS, temperature: 0.4, max_tokens: 600, stream: true,
+            model, messages,
+            ...(useTools ? { tools: TOOLS } : {}),
+            temperature: hasImage ? 0.2 : 0.4,
+            max_tokens: maxTok,
+            stream: true,
           });
 
           let content = "";
@@ -352,7 +390,7 @@ export async function POST(req: NextRequest) {
           }
 
           const tcList = Object.values(toolCalls);
-          if (!tcList.length || finishReason === "stop") {
+          if (!tcList.length || finishReason === "stop" || !useTools) {
             send({ type: "done", text: content });
             break;
           }
