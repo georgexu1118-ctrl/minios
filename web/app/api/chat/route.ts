@@ -273,7 +273,7 @@ const EDU_PROVIDERS: ProviderConfig[] = [
 const _ftModel = process.env.OPENAI_FINETUNE_MODEL;
 const GENERAL_PROVIDERS: ProviderConfig[] = [
   // Kimi K2 (Moonshot AI) on Groq LPU — 1T-parameter MoE, frontier reasoning, full tool use
-  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "moonshotai/kimi-k2-instruct",                    mode: "general" },
+  { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "moonshotai/kimi-k2-instruct-0905",               mode: "general" },
   // Groq Llama 3.3 70B fallback — 280 tok/s
   { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",       modelId: "llama-3.3-70b-versatile",                        mode: "general" },
   // OpenAI fine-tuned (when available) or gpt-4o-mini
@@ -322,8 +322,13 @@ async function streamWithFallbacks(
       return { chunks, client, modelId: provider.modelId };
     } catch (e: unknown) {
       const status = (e as { status?: number })?.status;
-      if (status === 429 || status === 503 || status === 529 || status === 500) {
-        errs.push(`${provider.modelId}:${status}`);
+      // Skip on rate-limit, overload, server-error, AND bad-request/not-found
+      // (so a missing or renamed model gracefully falls to the next provider).
+      if (status === 400 || status === 404 || status === 422 ||
+          status === 429 || status === 500 || status === 503 || status === 529) {
+        const msg = (e as { message?: string })?.message?.slice(0, 80) ?? "";
+        errs.push(`${provider.modelId}:${status}${msg ? ` (${msg})` : ""}`);
+        console.warn(`[chat] provider ${provider.modelId} failed: ${status} ${msg}`);
         continue;
       }
       throw e;
@@ -351,8 +356,13 @@ async function completeWithFallbacks(
       });
     } catch (e: unknown) {
       const status = (e as { status?: number })?.status;
-      if (status === 429 || status === 503 || status === 529 || status === 500) {
-        errs.push(`${provider.modelId}:${status}`);
+      // Skip on rate-limit, overload, server-error, AND bad-request/not-found
+      // (so a missing or renamed model gracefully falls to the next provider).
+      if (status === 400 || status === 404 || status === 422 ||
+          status === 429 || status === 500 || status === 503 || status === 529) {
+        const msg = (e as { message?: string })?.message?.slice(0, 80) ?? "";
+        errs.push(`${provider.modelId}:${status}${msg ? ` (${msg})` : ""}`);
+        console.warn(`[chat] provider ${provider.modelId} failed: ${status} ${msg}`);
         continue;
       }
       throw e;
