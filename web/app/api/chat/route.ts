@@ -230,6 +230,11 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   },
 ];
 
+const MATH_LATEX_RULE =
+  " For ALL math and science notation use LaTeX delimiters — NEVER bare ^ or _. " +
+  "Inline: $x^2$, $H_2O$, $E=mc^2$. Display (own line): $$\\frac{d}{dx}f(x)$$. " +
+  "Chemical superscripts/subscripts: $\\text{CO}_2$, $\\text{Fe}^{3+}$.";
+
 const SYSTEM_PROMPT =
   "You are AAOS — the Autonomous AI OS — an advanced intelligence running on a custom " +
   "32-bit OS kernel built from scratch. " +
@@ -240,7 +245,8 @@ const SYSTEM_PROMPT =
   "similar disclaimers — you have web_search available. Call it. When web_search returns results, " +
   "summarize them naturally with the source publication name and date for each story. " +
   "Answer general/timeless knowledge from your own training without searching. " +
-  "Be concise, accurate, and confident. Prefer bullet points for multi-part answers.";
+  "Be concise, accurate, and confident. Prefer bullet points for multi-part answers." +
+  MATH_LATEX_RULE;
 
 // ---------------------------------------------------------------------------
 // Provider chains — ordered by speed/quality preference.
@@ -476,6 +482,7 @@ const SYSTEM_PROMPT_EDU =
   "When the student asks a homework-style question, walk them through the reasoning instead of just giving the final answer. " +
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set." +
+  MATH_LATEX_RULE +
   CHEMISTRY_OF_SOLUTIONS;
 
 const SYSTEM_PROMPT_VISION =
@@ -483,8 +490,9 @@ const SYSTEM_PROMPT_VISION =
   "Solve it correctly and concisely. Cover up to undergraduate level (calculus, linear algebra, ODEs, " +
   "probability, stats, physics, chemistry, biology, CS, economics, humanities). " +
   "Format: (1) one short line naming the topic, (2) numbered solution steps — only the essential math, " +
-  "no filler prose, (3) **Final answer:** on its own line. Use LaTeX-style notation (x^2, sqrt(), integrals). " +
+  "no filler prose, (3) **Final answer:** on its own line. " +
   "Be terse. Skip restating the question. Never say you cannot see the image — you can." +
+  MATH_LATEX_RULE +
   CHEMISTRY_OF_SOLUTIONS;
 
 const SYSTEM_PROMPT_FLASHCARDS =

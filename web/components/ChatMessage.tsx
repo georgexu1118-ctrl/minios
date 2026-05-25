@@ -25,14 +25,26 @@ function ToolBadge({ tool, args }: { tool: string; args: Record<string, unknown>
   );
 }
 
-// Convert LaTeX delimiters that remark-math doesn't recognize natively:
-//   \[ ... \]  → $$ ... $$   (display math)
-//   \( ... \)  →  $ ... $    (inline math)
-// remark-math handles $...$ and $$...$$ out of the box.
+// Convert LaTeX delimiters that remark-math doesn't recognize natively,
+// and auto-wrap bare math expressions the model may still emit without $ delimiters.
 function normalizeMath(text: string): string {
-  return text
-    .replace(/\\\[([\s\S]*?)\\\]/g, (_m, body) => `\n$$${body}$$\n`)
-    .replace(/\\\(([\s\S]*?)\\\)/g, (_m, body) => `$${body}$`);
+  // Split on code fences so we never mangle code blocks
+  const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
+  return parts.map((part, i) => {
+    // Odd-indexed parts are code spans/blocks — leave untouched
+    if (i % 2 === 1) return part;
+    return part
+      // \[ ... \] → $$ ... $$ (display math)
+      .replace(/\\\[([\s\S]*?)\\\]/g, (_m, body) => `\n$$${body}$$\n`)
+      // \( ... \) → $ ... $ (inline math)
+      .replace(/\\\(([\s\S]*?)\\\)/g, (_m, body) => `$${body}$`)
+      // Bare superscripts like x^2, e^{-x}, r^n not already inside $ delimiters.
+      // Restricted to short bases (1-3 chars) to avoid matching things like "Python^3".
+      .replace(
+        /(?<!\$)(?<![:/])([A-Za-z0-9]{1,3}\^\{?[A-Za-z0-9+\-]+\}?)(?!\$)/g,
+        (_m, expr) => `$${expr}$`
+      );
+  }).join("");
 }
 
 export default function ChatMessage({ msg }: { msg: Message }) {
