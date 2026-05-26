@@ -197,6 +197,57 @@ async function webSearch(query: string): Promise<Record<string, unknown>> {
   return { error: `no results for "${query}"` };
 }
 
+// Fetch a URL and return clean text — strips HTML, collapses whitespace.
+// Works in Edge Runtime (no DOMParser needed).
+async function fetchPage(url: string): Promise<Record<string, unknown>> {
+  url = (url ?? "").trim();
+  if (!url) return { error: "no URL provided" };
+  // Only allow http/https
+  if (!/^https?:\/\//i.test(url)) return { error: "invalid URL (must start with http/https)" };
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; AAOS-Research/1.0)",
+        "Accept": "text/html,application/xhtml+xml,text/plain",
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return { error: `HTTP ${res.status} from ${url}` };
+
+    const raw = await res.text();
+
+    // Strip <script>, <style>, <head> blocks entirely
+    const stripped = raw
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<head[\s\S]*?<\/head>/gi, " ")
+      // Remove all remaining tags
+      .replace(/<[^>]+>/g, " ")
+      // Decode common HTML entities
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&mdash;/g, "—")
+      .replace(/&ndash;/g, "–")
+      .replace(/&hellip;/g, "…")
+      // Collapse whitespace
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    // Cap at 12 000 chars — enough for a full math competition solution
+    const text = stripped.length > 12000 ? stripped.slice(0, 12000) + "\n\n[… content truncated …]" : stripped;
+    return { url, length: stripped.length, text };
+  } catch (e) {
+    return { error: `Failed to fetch "${url}": ${String(e)}` };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tool schemas
 // ---------------------------------------------------------------------------
@@ -210,6 +261,20 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
         type: "object",
         properties: { symbol: { type: "string", description: "Ticker symbol" } },
         required: ["symbol"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "fetch_page",
+      description: "Fetch the full text content of any URL (webpage, solution sheet, problem set, article). " +
+        "Use this whenever the user pastes a URL and wants you to read, check, or analyse its content. " +
+        "Works for math competition solutions, homework PDFs rendered as HTML, textbook pages, etc.",
+      parameters: {
+        type: "object",
+        properties: { url: { type: "string", description: "The full URL to fetch (must start with http:// or https://)" } },
+        required: ["url"],
       },
     },
   },
@@ -242,6 +307,7 @@ const SYSTEM_PROMPT =
   "similar disclaimers — you have web_search available. Call it. When web_search returns results, " +
   "summarize them naturally with the source publication name and date for each story. " +
   "Answer general/timeless knowledge from your own training without searching. " +
+  "When the user pastes a URL, call fetch_page to read it. " +
   "Be concise, accurate, and confident. Prefer bullet points for multi-part answers." +
   MATH_LATEX_RULE;
 
@@ -410,7 +476,8 @@ const SYSTEM_PROMPT_EDU =
   "Explain step by step, define terms, and check understanding. " +
   "When the student asks a homework-style question, walk them through the reasoning instead of just giving the final answer. " +
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
-  "When asked for flashcards, suggest the user click the Flashcards button for a structured set." +
+  "When asked for flashcards, suggest the user click the Flashcards button for a structured set. " +
+  "When the user pastes a URL (solution page, problem set, article), ALWAYS call fetch_page with that URL first — never say you cannot access it." +
   MATH_LATEX_RULE +
   STEM_RULES +
   CHEMISTRY_OF_SOLUTIONS;
@@ -635,6 +702,7 @@ export async function POST(req: NextRequest) {
             let result: Record<string, unknown>;
             if (tc.name === "get_stock") result = await getStock(args.symbol ?? "");
             else if (tc.name === "web_search") result = await webSearch(args.query ?? "");
+            else if (tc.name === "fetch_page") result = await fetchPage(args.url ?? "");
             else result = { error: `unknown tool ${tc.name}` };
 
             send({ type: "tool_result", tool: tc.name, result });
