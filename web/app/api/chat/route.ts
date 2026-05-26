@@ -281,8 +281,8 @@ async function fetchPage(url: string): Promise<Record<string, unknown>> {
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
-    // Cap at 12 000 chars — enough for a full math competition solution
-    const text = stripped.length > 12000 ? stripped.slice(0, 12000) + "\n\n[… content truncated …]" : stripped;
+    // Cap at 20 000 chars — enough for a full math competition problem set + solutions
+    const text = stripped.length > 20000 ? stripped.slice(0, 20000) + "\n\n[… content truncated …]" : stripped;
     return { url, length: stripped.length, text };
   } catch (e) {
     return { error: `Failed to fetch "${url}": ${String(e)}` };
@@ -525,7 +525,11 @@ const SYSTEM_PROMPT_EDU =
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set. " +
   "For current stock prices or stock comparisons, use get_stock rather than web_search. For current news, use web_search. " +
   "If a live research context has already been supplied, answer from it directly and never repeat its tool requests. " +
-  "When the user pastes a URL (solution page, problem set, article), ALWAYS call fetch_page with that URL first — never say you cannot access it." +
+  "When the user pastes a URL (solution page, problem set, article), ALWAYS call fetch_page with that URL first — never say you cannot access it. " +
+  "Math contest workflow: if the user gives you a contest URL AND a solution URL, call fetch_page on BOTH in the same turn (parallel). " +
+  "After reading the contest, solve every problem and list all answers. " +
+  "After reading the solutions, compare each answer — mark ✓ if correct, ✗ if wrong and show the correct answer. " +
+  "If asked for answers only (no steps), output a numbered list of just the final answers, one per line." +
   MATH_LATEX_RULE +
   STEM_RULES +
   CHEMISTRY_OF_SOLUTIONS;
@@ -676,7 +680,10 @@ export async function POST(req: NextRequest) {
         // 1200 is enough for ~95% of undergrad problems with concise step-by-step work.
         const hasPrefetchedResearch = shouldPrefetchNews || shouldPrefetchStocks;
         const useTools = !hasImage && !hasPrefetchedResearch;
-        const maxTok = hasImage ? 1200 : 600;
+        const isEdu = requested === "gpt-oss-20b";
+        // Educational model needs high token budget for multi-problem contests (10 Q's × ~200 tok each).
+        // Vision mode caps at 1200 for fast screenshot solving.
+        const maxTok = hasImage ? 1200 : isEdu ? 4000 : 800;
 
         if (hasPrefetchedResearch) {
           let newsResult: Record<string, unknown> | undefined;
@@ -719,7 +726,9 @@ export async function POST(req: NextRequest) {
         let mainClient!: OpenAI;
         let mainModel = "";
 
-        for (let round = 0; round < 4; round++) {
+        // Educational mode gets more rounds: fetch questions → fetch solutions → answer = 3 rounds min.
+        const maxRounds = isEdu ? 6 : 4;
+        for (let round = 0; round < maxRounds; round++) {
           let chunks: AsyncIterable<OpenAI.Chat.ChatCompletionChunk>;
           if (round === 0) {
             const result = await streamWithFallbacks(providerChain, {
