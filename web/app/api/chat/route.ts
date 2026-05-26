@@ -151,11 +151,15 @@ const COMPANY_TICKERS: Array<[RegExp, string]> = [
   [/\b(?:applied optoelectronics|aaoi)\b/i, "AAOI"],
 ];
 
-function detectedTicker(query: string): string | undefined {
+function detectedTickers(query: string): string[] {
+  const tickers: string[] = [];
   for (const [company, ticker] of COMPANY_TICKERS) {
-    if (company.test(query)) return ticker;
+    if (company.test(query) && !tickers.includes(ticker)) tickers.push(ticker);
   }
-  return query.match(/\$([A-Z]{1,5})\b/)?.[1];
+  for (const match of query.matchAll(/\$([A-Z]{1,5})\b/g)) {
+    if (!tickers.includes(match[1])) tickers.push(match[1]);
+  }
+  return tickers;
 }
 
 function needsLiveNews(query: string): boolean {
@@ -169,6 +173,11 @@ function freshNewsQuery(query: string): string {
   if (/\b(today|breaking|right now)\b/i.test(query)) return `${query} when:1d`;
   if (/\b(latest|recent|this week|news|headline|stock|shares?|market)\b/i.test(query)) return `${query} when:7d`;
   return query;
+}
+
+function needsStockQuotes(query: string): boolean {
+  return detectedTickers(query).length > 0 &&
+    /\b(trading|price|quote|stock|shares?|compare|versus|vs\.?|performance|ytd|year.to.date|up|down|move|moving)\b/i.test(query);
 }
 
 async function googleNews(query: string) {
@@ -514,6 +523,8 @@ const SYSTEM_PROMPT_EDU =
   "When the student asks a homework-style question, walk them through the reasoning instead of just giving the final answer. " +
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set. " +
+  "For current stock prices or stock comparisons, use get_stock rather than web_search. For current news, use web_search. " +
+  "If a live research context has already been supplied, answer from it directly and never repeat its tool requests. " +
   "When the user pastes a URL (solution page, problem set, article), ALWAYS call fetch_page with that URL first — never say you cannot access it." +
   MATH_LATEX_RULE +
   STEM_RULES +
@@ -574,6 +585,7 @@ export async function POST(req: NextRequest) {
   }));
   const latestUserQuery = [...rawMessages].reverse().find(message => message.role === "user")?.content ?? "";
   const shouldPrefetchNews = !isFlashcards && !hasImage && needsLiveNews(latestUserQuery);
+  const shouldPrefetchStocks = !isFlashcards && !hasImage && needsStockQuotes(latestUserQuery);
 
   // If a screenshot image was attached, upgrade the last user message to a vision content array
   if (body.image && rawMessages.length > 0) {
@@ -662,39 +674,42 @@ export async function POST(req: NextRequest) {
         // ── REGULAR CHAT MODE ────────────────────────────────────────
         // Vision mode: skip tool calls (focus on solving), trim tokens for fast streaming.
         // 1200 is enough for ~95% of undergrad problems with concise step-by-step work.
-        const useTools = !hasImage;
+        const hasPrefetchedResearch = shouldPrefetchNews || shouldPrefetchStocks;
+        const useTools = !hasImage && !hasPrefetchedResearch;
         const maxTok = hasImage ? 1200 : 600;
 
-        if (shouldPrefetchNews) {
-          const searchQuery = freshNewsQuery(latestUserQuery);
-          send({ type: "tool_call", tool: "web_search", args: { query: searchQuery } });
-
-          let newsResult: Record<string, unknown>;
-          try {
-            const results = await googleNews(searchQuery);
-            newsResult = results.length
-              ? { query: searchQuery, source: "google news", retrieved_at: new Date().toISOString(), results }
-              : await webSearch(searchQuery);
-          } catch {
-            newsResult = await webSearch(searchQuery);
+        if (hasPrefetchedResearch) {
+          let newsResult: Record<string, unknown> | undefined;
+          if (shouldPrefetchNews) {
+            const searchQuery = freshNewsQuery(latestUserQuery);
+            send({ type: "tool_call", tool: "web_search", args: { query: searchQuery } });
+            try {
+              const results = await googleNews(searchQuery);
+              newsResult = results.length
+                ? { query: searchQuery, source: "google news", retrieved_at: new Date().toISOString(), results }
+                : await webSearch(searchQuery);
+            } catch {
+              newsResult = await webSearch(searchQuery);
+            }
+            send({ type: "tool_result", tool: "web_search", result: newsResult });
           }
-          send({ type: "tool_result", tool: "web_search", result: newsResult });
 
-          const ticker = detectedTicker(latestUserQuery);
-          let quoteResult: Record<string, unknown> | undefined;
-          if (ticker) {
+          const quoteResults: Record<string, unknown>[] = [];
+          for (const ticker of shouldPrefetchStocks ? detectedTickers(latestUserQuery) : []) {
             send({ type: "tool_call", tool: "get_stock", args: { symbol: ticker } });
-            quoteResult = await getStock(ticker);
+            const quoteResult = await getStock(ticker);
             send({ type: "tool_result", tool: "get_stock", result: quoteResult });
+            quoteResults.push(quoteResult);
           }
 
           const liveContext =
             "Live research has already been retrieved for this request. Answer directly from this context; " +
+            "do not call tools again for this answer. " +
             "cite publication names and publication dates for news items, state the retrieval timestamp when useful, " +
             "and provide article links when summarizing headlines. For stock news, separate the live quote from " +
             "reported developments and do not assert causation unless a cited source explicitly reports it.\n\n" +
-            `NEWS_RESULTS=${JSON.stringify(newsResult)}\n` +
-            (quoteResult ? `STOCK_QUOTE=${JSON.stringify(quoteResult)}` : "");
+            (newsResult ? `NEWS_RESULTS=${JSON.stringify(newsResult)}\n` : "") +
+            (quoteResults.length ? `STOCK_QUOTES=${JSON.stringify(quoteResults)}` : "");
           const historyStart = messages.length - rawMessages.length;
           messages.splice(historyStart, 0, { role: "system", content: liveContext });
         }
