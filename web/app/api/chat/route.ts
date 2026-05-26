@@ -139,6 +139,38 @@ function parseRssItems(xml: string, limit = 6) {
 
 // Real news via Google News RSS (no API key, no auth). Returns fresh headlines
 // with publish dates and source publications — what the model was missing.
+const COMPANY_TICKERS: Array<[RegExp, string]> = [
+  [/\b(?:apple|aapl)\b/i, "AAPL"],
+  [/\b(?:microsoft|msft)\b/i, "MSFT"],
+  [/\b(?:nvidia|nvda)\b/i, "NVDA"],
+  [/\b(?:tesla|tsla)\b/i, "TSLA"],
+  [/\b(?:meta platforms|facebook|meta)\b/i, "META"],
+  [/\b(?:amazon|amzn)\b/i, "AMZN"],
+  [/\b(?:alphabet|google|googl|goog)\b/i, "GOOGL"],
+  [/\b(?:advanced micro devices|amd)\b/i, "AMD"],
+  [/\b(?:applied optoelectronics|aaoi)\b/i, "AAOI"],
+];
+
+function detectedTicker(query: string): string | undefined {
+  for (const [company, ticker] of COMPANY_TICKERS) {
+    if (company.test(query)) return ticker;
+  }
+  return query.match(/\$([A-Z]{1,5})\b/)?.[1];
+}
+
+function needsLiveNews(query: string): boolean {
+  const mentionsNews = /\b(news|headline|breaking|latest|today|current events?|this week|this month|recent developments?|recent announcements?|what(?:'s| is) happening)\b/i.test(query);
+  const marketMovement = /\b(stock|shares?|market|ticker|earnings|nasdaq|s&p|dow)\b/i.test(query) &&
+    /\b(why|news|catalyst|move|moving|up|down|surge|jump|drop|fall|fell|rally|selloff|outlook)\b/i.test(query);
+  return mentionsNews || marketMovement;
+}
+
+function freshNewsQuery(query: string): string {
+  if (/\b(today|breaking|right now)\b/i.test(query)) return `${query} when:1d`;
+  if (/\b(latest|recent|this week|news|headline|stock|shares?|market)\b/i.test(query)) return `${query} when:7d`;
+  return query;
+}
+
 async function googleNews(query: string) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
   const res = await fetch(url, {
@@ -309,7 +341,8 @@ const SYSTEM_PROMPT =
   "what's happening, recent announcements, this week, this month, this year, or anything that " +
   "could have changed after your training cutoff. NEVER respond with 'I cannot retrieve news' or " +
   "similar disclaimers — you have web_search available. Call it. When web_search returns results, " +
-  "summarize them naturally with the source publication name and date for each story. " +
+  "summarize them naturally with the source publication name and date for each story. For stock news, " +
+  "distinguish confirmed price movement from possible catalysts and never claim a headline caused a move without evidence. " +
   "Answer general/timeless knowledge from your own training without searching. " +
   "When the user pastes a URL, call fetch_page to read it. " +
   "Be concise, accurate, and confident. Prefer bullet points for multi-part answers." +
@@ -539,6 +572,8 @@ export async function POST(req: NextRequest) {
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
+  const latestUserQuery = [...rawMessages].reverse().find(message => message.role === "user")?.content ?? "";
+  const shouldPrefetchNews = !isFlashcards && !hasImage && needsLiveNews(latestUserQuery);
 
   // If a screenshot image was attached, upgrade the last user message to a vision content array
   if (body.image && rawMessages.length > 0) {
@@ -629,6 +664,40 @@ export async function POST(req: NextRequest) {
         // 1200 is enough for ~95% of undergrad problems with concise step-by-step work.
         const useTools = !hasImage;
         const maxTok = hasImage ? 1200 : 600;
+
+        if (shouldPrefetchNews) {
+          const searchQuery = freshNewsQuery(latestUserQuery);
+          send({ type: "tool_call", tool: "web_search", args: { query: searchQuery } });
+
+          let newsResult: Record<string, unknown>;
+          try {
+            const results = await googleNews(searchQuery);
+            newsResult = results.length
+              ? { query: searchQuery, source: "google news", retrieved_at: new Date().toISOString(), results }
+              : await webSearch(searchQuery);
+          } catch {
+            newsResult = await webSearch(searchQuery);
+          }
+          send({ type: "tool_result", tool: "web_search", result: newsResult });
+
+          const ticker = detectedTicker(latestUserQuery);
+          let quoteResult: Record<string, unknown> | undefined;
+          if (ticker) {
+            send({ type: "tool_call", tool: "get_stock", args: { symbol: ticker } });
+            quoteResult = await getStock(ticker);
+            send({ type: "tool_result", tool: "get_stock", result: quoteResult });
+          }
+
+          const liveContext =
+            "Live research has already been retrieved for this request. Answer directly from this context; " +
+            "cite publication names and publication dates for news items, state the retrieval timestamp when useful, " +
+            "and provide article links when summarizing headlines. For stock news, separate the live quote from " +
+            "reported developments and do not assert causation unless a cited source explicitly reports it.\n\n" +
+            `NEWS_RESULTS=${JSON.stringify(newsResult)}\n` +
+            (quoteResult ? `STOCK_QUOTE=${JSON.stringify(quoteResult)}` : "");
+          const historyStart = messages.length - rawMessages.length;
+          messages.splice(historyStart, 0, { role: "system", content: liveContext });
+        }
 
         // mainClient/mainModel are set on round 0 via fallback selection and
         // reused for subsequent tool-call rounds to keep conversation coherent.
