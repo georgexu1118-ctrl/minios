@@ -261,8 +261,6 @@ type ProviderConfig = {
 const EDU_PROVIDERS: ProviderConfig[] = [
   // Groq LPU — confirmed live for gpt-oss-20b at ~1000 tok/s
   { apiKeyEnv: "GROQ_API_KEY",      baseURL: "https://api.groq.com/openai/v1",          modelId: "openai/gpt-oss-20b", mode: "educational" },
-  // Fireworks AI fallback (add FIREWORKS_API_KEY to enable)
-  { apiKeyEnv: "FIREWORKS_API_KEY", baseURL: "https://api.fireworks.ai/inference/v1",    modelId: "accounts/fireworks/models/gpt-oss-20b", mode: "educational" },
   // Together AI native gpt-oss-20b
   { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",              modelId: "openai/gpt-oss-20b", mode: "educational" },
   // Last-resort Llama fallbacks
