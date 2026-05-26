@@ -230,10 +230,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   },
 ];
 
-const MATH_LATEX_RULE =
-  " For ALL math and science notation use LaTeX delimiters — NEVER bare ^ or _. " +
-  "Inline: $x^2$, $H_2O$, $E=mc^2$. Display (own line): $$\\frac{d}{dx}f(x)$$. " +
-  "Chemical superscripts/subscripts: $\\text{CO}_2$, $\\text{Fe}^{3+}$.";
+const MATH_LATEX_RULE = " Always use LaTeX: $x^2$ inline, $$...$$ display. Never bare ^ or _.";
 
 const SYSTEM_PROMPT =
   "You are AAOS — the Autonomous AI OS — an advanced intelligence running on a custom " +
@@ -377,103 +374,15 @@ async function completeWithFallbacks(
   throw new Error(`All providers unavailable (${errs.join(", ")})`);
 }
 
-// Deep solution-chemistry reference, injected into both EDU and VISION prompts.
-// Lists the formulas the model should always have ready and the traps to check.
-const CHEMISTRY_OF_SOLUTIONS = `
-
-You are EXTREMELY STRONG at the chemistry of solutions. Always apply this knowledge correctly:
-
-CONCENTRATION UNITS:
-- Molarity M = mol solute / L solution
-- Molality m = mol solute / kg solvent  (use kg of SOLVENT, not solution)
-- Mole fraction x_i = n_i / Σ n_j
-- Mass percent (w/w) = (mass solute / mass solution) × 100
-- ppm = mg solute / kg solution; ppb = µg solute / kg solution
-- Normality N = equivalents / L  (use for acid–base and redox)
-
-COLLIGATIVE PROPERTIES (use VAN'T HOFF FACTOR i for ionic compounds: NaCl i≈2, CaCl₂ i≈3, glucose/urea i=1):
-- Boiling-point elevation:  ΔT_b = i · K_b · m
-- Freezing-point depression: ΔT_f = i · K_f · m
-- Osmotic pressure:          Π = i · M · R · T   (R = 0.08206 L·atm/(mol·K), T in K)
-- Vapor-pressure lowering (Raoult): P_solution = x_solvent · P°_solvent
-- For two volatile components: P_total = x_A·P°_A + x_B·P°_B
-
-EQUILIBRIA & ACID–BASE:
-- Kw = [H⁺][OH⁻] = 1.0 × 10⁻¹⁴ at 25 °C
-- pH = −log[H⁺],  pOH = −log[OH⁻],  pH + pOH = 14
-- Weak acid: Ka = [H⁺][A⁻]/[HA]; pKa = −log Ka; if x ≪ C₀ then [H⁺] ≈ √(Ka·C₀)
-- Henderson–Hasselbalch (buffer): pH = pKa + log([A⁻]/[HA])
-- Polyprotic acids: solve stepwise with Ka1, Ka2, …; usually Ka1 dominates
-- ICE tables for equilibrium problems; check the small-x approximation (valid if x/C₀ < 5%)
-
-SOLUBILITY & PRECIPITATION:
-- Ksp expression matches stoichiometry: AgCl → Ksp = [Ag⁺][Cl⁻]; CaF₂ → Ksp = [Ca²⁺][F⁻]²
-- Molar solubility s: solve from Ksp; common-ion effect lowers s
-- Q vs Ksp: Q < Ksp unsaturated, Q = Ksp saturated, Q > Ksp precipitates
-
-THERMODYNAMICS OF DISSOLUTION:
-- ΔG_soln = ΔH_soln − T·ΔS_soln; soluble if ΔG < 0
-- Lattice energy, hydration energy, and entropy of mixing all matter
-
-GAS SOLUBILITY:
-- Henry's law: C = k_H · P_gas (or P = k_H · x), C increases with pressure, decreases with T
-
-ELECTROCHEMISTRY OF SOLUTIONS:
-- Nernst: E = E° − (RT/nF)·ln Q = E° − (0.0592/n)·log Q at 25 °C
-- Galvanic cell: E°_cell = E°_cathode − E°_anode; spontaneous if E°_cell > 0
-- ΔG° = −nFE°; relate to K via ΔG° = −RT·ln K
-
-ICE TABLE CONSTRUCTION — always build one for any equilibrium problem:
-Format as a markdown table with columns for each species and rows I / C / E.
-
-RULES:
-1. Write the balanced equation first: aA ⇌ bB + cC
-2. Initial row: given concentrations (0 for pure products unless stated otherwise)
-3. Change row: use stoichiometric ratios relative to x
-   - Reactants lose: −ax, −bx …   Products gain: +bx, +cx …
-   - For Ksp: the dissolving solid has no column; ions get +stoich·x
-4. Equilibrium row: Initial + Change for each species
-5. Substitute into the K expression and solve for x
-6. Check the small-x approximation: valid if x/C₀ < 5% (skip quadratic)
-7. Back-calculate requested quantity (pH, concentration, solubility, etc.)
-
-EXAMPLE — weak acid HA, initial [HA] = C₀, Ka given:
-
-| | [HA] | [H⁺] | [A⁻] |
-|---|---|---|---|
-| I | C₀ | 0 | 0 |
-| C | −x | +x | +x |
-| E | C₀−x | x | x |
-
-Ka = x²/(C₀−x)  →  if x ≪ C₀: x ≈ √(Ka·C₀),  pH = −log x
-
-EXAMPLE — polyprotic acid H₂A (use two successive ICE tables, Ka1 then Ka2):
-First ICE: H₂A ⇌ H⁺ + HA⁻  (solve x₁ with Ka1, usually dominates pH)
-Second ICE: HA⁻ ⇌ H⁺ + A²⁻  (Ka2 usually tiny; [H⁺] ≈ x₁ + x₂ ≈ x₁)
-
-EXAMPLE — Ksp dissolution, e.g. Ca₃(PO₄)₂ ⇌ 3 Ca²⁺ + 2 PO₄³⁻:
-
-| | [Ca²⁺] | [PO₄³⁻] |
-|---|---|---|
-| I | 0 | 0 |
-| C | +3s | +2s |
-| E | 3s | 2s |
-
-Ksp = (3s)³(2s)² = 108s⁵  →  s = (Ksp/108)^(1/5)
-
-COMMON-ION EFFECT: if an ion is already present, put that value in the Initial row.
-BUFFER CHECK: use Henderson–Hasselbalch after the ICE table confirms the ratio [A⁻]/[HA].
-
-WORKFLOW DISCIPLINE for every solution problem:
-1. Identify the type (colligative? buffer? Ksp? Nernst?)
-2. Write the balanced equation and build the ICE table
-3. Write the K expression BEFORE substituting numbers
-4. Convert units explicitly (g → mol, mL → L, °C → K when needed)
-5. Carry units through every line; the final units must match what's asked
-6. Apply van't Hoff factor i for ionic solutes in colligative-property problems
-7. Match sig figs to the least-precise given value
-8. State the final answer with correct units, and sanity-check the magnitude
-`;
+// Compact chemistry reference — key formulas only; frontier models know the derivations.
+const CHEMISTRY_OF_SOLUTIONS =
+  " Chemistry precision rules: M=mol/L, m=mol/kg-solvent; colligative props use i·K·m (i=vant Hoff);" +
+  " ΔTb=i·Kb·m, ΔTf=i·Kf·m, Π=iMRT; Raoult P=xP°;" +
+  " pH+pOH=14, Ka=[H⁺][A⁻]/[HA], Henderson-Hasselbalch pH=pKa+log([A⁻]/[HA]);" +
+  " ICE tables for all equilibria, check x/C₀<5% for small-x approx;" +
+  " Ksp stoichiometry must match; Q vs Ksp decides precipitation;" +
+  " Nernst E=E°−(0.0592/n)logQ at 25°C; ΔG°=−nFE°=−RTlnK." +
+  " Always carry units, apply i for ionic solutes, sanity-check magnitude.";
 
 const SYSTEM_PROMPT_EDU =
   "You are AAOS Study — an educational tutor running on the AAOS Autonomous AI OS. " +
@@ -532,7 +441,8 @@ export async function POST(req: NextRequest) {
     : hasImage ? SYSTEM_PROMPT_VISION
     : requested === "gpt-oss-20b" ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
-  const rawMessages = (body.messages ?? []).map(m => ({
+  // Cap history at 10 messages (5 exchanges) — keeps input tokens lean for fast TTFT.
+  const rawMessages = (body.messages ?? []).slice(-10).map(m => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
