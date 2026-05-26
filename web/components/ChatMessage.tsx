@@ -48,6 +48,13 @@ function normalizeOutsideMath(text: string): string {
   }).join("");
 }
 
+function normalizeDisplayEnvironments(text: string): string {
+  return text.replace(
+    /\\begin\{align\*?\}([\s\S]*?)(?:\\end\{align\*?\}|(?=\n\s*\n|$))/g,
+    (_match, body) => `\n$$\n\\begin{aligned}\n${body.trim()}\n\\end{aligned}\n$$\n`
+  );
+}
+
 export function normalizeMath(text: string): string {
   const codeParts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
   return codeParts.map((part, index) => {
@@ -57,22 +64,28 @@ export function normalizeMath(text: string): string {
       .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body) => `\n$$${body}$$\n`)
       .replace(/\\\(([\s\S]*?)\\\)/g, (_match, body) => `$${body}$`);
 
-    return normalizedDelimiters
-      .split("\n")
-      .map(line => {
-        if (isStandaloneEquation(line)) {
-          const listPrefix = line.match(/^(\s*(?:[-*]|\d+[.)])\s+)(.*)$/);
-          const prefix = listPrefix?.[1] ?? "";
-          const expression = (listPrefix?.[2] ?? line)
-            .replace(/\$\s+\$/g, " \\\\\n")
-            .replace(/(\d)\s+\$(?=[A-Za-z(])/g, "$1 \\\\\n$")
-            .replace(/\$/g, "")
-            .trim();
-          return `${prefix}$$\n${expression}\n$$`;
-        }
-        return normalizeOutsideMath(line);
+    return normalizeDisplayEnvironments(normalizedDelimiters)
+      .split(/(\$\$[\s\S]*?\$\$)/g)
+      .map((segment, segmentIndex) => {
+        if (segmentIndex % 2 === 1) return segment;
+        return segment
+          .split("\n")
+          .map(line => {
+            if (isStandaloneEquation(line)) {
+              const listPrefix = line.match(/^(\s*(?:[-*]|\d+[.)])\s+)(.*)$/);
+              const prefix = listPrefix?.[1] ?? "";
+              const expression = (listPrefix?.[2] ?? line)
+                .replace(/\$\s+\$/g, " \\\\\n")
+                .replace(/(\d)\s+\$(?=[A-Za-z(])/g, "$1 \\\\\n$")
+                .replace(/\$/g, "")
+                .trim();
+              return `${prefix}$$\n${expression}\n$$`;
+            }
+            return normalizeOutsideMath(line);
+          })
+          .join("\n");
       })
-      .join("\n");
+      .join("");
   }).join("");
 }
 

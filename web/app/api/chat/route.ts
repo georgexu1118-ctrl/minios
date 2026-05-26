@@ -298,6 +298,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
 const MATH_LATEX_RULE =
   " Always use valid LaTeX delimiters: $x^2$ for short inline math and $$...$$ for displayed equations. " +
   "Put each equation chain on its own single display block, for example $$(3x)^2 = (2\\sqrt{2})^2 + 4^2 = 24$$. " +
+  "For multi-line derivations use one $$\\begin{aligned}...\\end{aligned}$$ block, never raw \\begin{align*}. " +
   "Never mix delimited and undelimited expressions on one equation line, and never output bare ^ or _.";
 
 const SYSTEM_PROMPT =
