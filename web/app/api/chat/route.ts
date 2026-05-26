@@ -375,6 +375,28 @@ async function completeWithFallbacks(
 }
 
 // Compact chemistry reference — key formulas only; frontier models know the derivations.
+const STEM_RULES =
+  " STEM precision rules —" +
+  " MATH: show every step. Algebra: factor, complete-the-square, quadratic formula x=(-b±√(b²-4ac))/2a." +
+  " Calculus: chain/product/quotient rules, u-sub, IBP, L'Hôpital (0/0 or ∞/∞), Taylor series." +
+  " Linear algebra: RREF, det, eigenvalues from det(A−λI)=0, orthogonality." +
+  " Diff-eq: separable, integrating factor, char. eq for const-coeff homogeneous, Laplace." +
+  " Stats: mean/σ²/σ, z=(x−μ)/σ, p-value, CI, Bayes P(A|B)=P(B|A)P(A)/P(B)." +
+  " PHYSICS: draw FBD first. Kinematics: v=u+at, s=ut+½at², v²=u²+2as." +
+  " Newton F=ma; momentum p=mv; energy KE=½mv², PE=mgh, conservation." +
+  " E&M: Coulomb F=kq₁q₂/r², Gauss ∮E·dA=Q/ε₀, Faraday ε=−dΦ/dt." +
+  " Circuits: V=IR, P=IV, series R=ΣRᵢ, parallel 1/R=Σ1/Rᵢ." +
+  " Thermo: ΔU=Q−W, PV=nRT, ΔS=Qrev/T, Carnot η=1−Tc/Th, ΔG=ΔH−TΔS." +
+  " Waves: v=fλ, Doppler f'=f(v±vo)/(v∓vs), n=c/v, Snell n₁sinθ₁=n₂sinθ₂." +
+  " Quantum: E=hf, λ=h/p, Heisenberg ΔxΔp≥ℏ/2, Schrödinger Ĥψ=Eψ." +
+  " Relativity: γ=1/√(1−β²), E=γmc², t'=γt, length contraction L=L₀/γ." +
+  " BIOLOGY: cell cycle G1→S→G2→M (IPMAT for mitosis)." +
+  " DNA replication semi-conservative; transcription DNA→mRNA; translation mRNA→protein (codons)." +
+  " Mendelian: dominant/recessive, Punnett squares, Hardy-Weinberg p²+2pq+q²=1." +
+  " Photosynthesis 6CO₂+6H₂O→C₆H₁₂O₆+6O₂; respiration reverses it." +
+  " CS: Big-O analysis; binary search O(log n); merge/quick sort O(n log n);" +
+  " BFS/DFS on graphs; DP = memoization + optimal substructure; recursion base cases first.";
+
 const CHEMISTRY_OF_SOLUTIONS =
   " Chemistry precision rules: M=mol/L, m=mol/kg-solvent; colligative props use i·K·m (i=vant Hoff);" +
   " ΔTb=i·Kb·m, ΔTf=i·Kf·m, Π=iMRT; Raoult P=xP°;" +
@@ -392,6 +414,7 @@ const SYSTEM_PROMPT_EDU =
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set." +
   MATH_LATEX_RULE +
+  STEM_RULES +
   CHEMISTRY_OF_SOLUTIONS;
 
 const SYSTEM_PROMPT_VISION =
@@ -402,6 +425,7 @@ const SYSTEM_PROMPT_VISION =
   "no filler prose, (3) **Final answer:** on its own line. " +
   "Be terse. Skip restating the question. Never say you cannot see the image — you can." +
   MATH_LATEX_RULE +
+  STEM_RULES +
   CHEMISTRY_OF_SOLUTIONS;
 
 const SYSTEM_PROMPT_FLASHCARDS =

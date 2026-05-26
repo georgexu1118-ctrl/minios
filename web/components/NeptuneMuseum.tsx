@@ -3,197 +3,229 @@ import { useEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Neptune + Interstellar Galaxies — deep-space cinematic scene
+// Interactive: mouse tracking drives 3D tilt + galaxy parallax (Browserbase-style)
 // ---------------------------------------------------------------------------
 
-// Realistic Neptune body.
 function NeptuneBody({ size }: { size: number }) {
   const blur = (f: number) => `${Math.max(1, size * f)}px`;
   return (
     <div className="relative" style={{ width: size, height: size }}>
+      {/* Painting grain filter */}
+      <svg width="0" height="0" style={{ position: "absolute" }}>
+        <defs>
+          <filter id="neptune-grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+            <feBlend in="SourceGraphic" mode="overlay" result="blend" />
+            <feComposite in="blend" in2="SourceGraphic" operator="in" />
+          </filter>
+        </defs>
+      </svg>
+
       <div className="absolute inset-0 rounded-full overflow-hidden" style={{
         background:
-          "radial-gradient(circle at 36% 34%, #2563eb 0%, #1d4ed8 12%, #1e3a8a 28%, #172554 50%, #0f172a 72%, #060c18 90%, #000 100%)",
+          "radial-gradient(circle at 36% 34%, #3b82f6 0%, #2563eb 8%, #1d4ed8 18%, #1e3a8a 34%, #172554 54%, #0f172a 74%, #060c18 90%, #000 100%)",
         boxShadow:
-          `0 0 ${size * 0.55}px rgba(37,99,235,0.32),` +
-          `0 0 ${size * 1.1}px rgba(29,78,216,0.14),` +
-          `inset -${size * 0.22}px -${size * 0.12}px ${size * 0.38}px rgba(0,0,0,0.80),` +
-          `inset ${size * 0.04}px ${size * 0.04}px ${size * 0.20}px rgba(96,165,250,0.07)`,
+          `0 0 ${size * 0.6}px rgba(37,99,235,0.38),` +
+          `0 0 ${size * 1.2}px rgba(29,78,216,0.16),` +
+          `inset -${size * 0.22}px -${size * 0.12}px ${size * 0.4}px rgba(0,0,0,0.82),` +
+          `inset ${size * 0.04}px ${size * 0.04}px ${size * 0.22}px rgba(96,165,250,0.09)`,
       }}>
-        {/* Equatorial belt */}
+        {/* Painting brushstroke bands — wide, organic */}
         <div className="absolute" style={{
-          top: "28%", left: "-5%", width: "110%", height: "18%",
-          background: "linear-gradient(180deg, transparent 0%, rgba(59,130,246,0.22) 40%, rgba(96,165,250,0.14) 65%, transparent 100%)",
-          filter: `blur(${blur(0.035)})`,
+          top: "18%", left: "-8%", width: "116%", height: "22%",
+          background: "linear-gradient(182deg, transparent 0%, rgba(59,130,246,0.28) 35%, rgba(96,165,250,0.18) 60%, rgba(147,197,253,0.08) 80%, transparent 100%)",
+          filter: `blur(${blur(0.045)})`,
+          transform: "rotate(-1.5deg)",
         }} />
-        {/* Mid-latitude band */}
         <div className="absolute" style={{
-          top: "52%", left: "-5%", width: "110%", height: "14%",
-          background: "linear-gradient(180deg, transparent 0%, rgba(37,99,235,0.18) 45%, rgba(59,130,246,0.10) 70%, transparent 100%)",
+          top: "44%", left: "-8%", width: "116%", height: "18%",
+          background: "linear-gradient(178deg, transparent 0%, rgba(37,99,235,0.22) 40%, rgba(59,130,246,0.13) 68%, transparent 100%)",
+          filter: `blur(${blur(0.05)})`,
+          transform: "rotate(1deg)",
+        }} />
+        <div className="absolute" style={{
+          top: "66%", left: "-8%", width: "116%", height: "12%",
+          background: "linear-gradient(181deg, transparent 0%, rgba(29,78,216,0.16) 45%, rgba(37,99,235,0.09) 72%, transparent 100%)",
           filter: `blur(${blur(0.04)})`,
         }} />
-        {/* Polar brightening */}
+
+        {/* Polar brightening — painterly wash */}
         <div className="absolute" style={{
-          top: "0%", left: "10%", width: "80%", height: "28%",
-          background: "radial-gradient(ellipse at 50% 20%, rgba(96,165,250,0.16) 0%, transparent 70%)",
+          top: "-4%", left: "8%", width: "84%", height: "34%",
+          background: "radial-gradient(ellipse at 50% 18%, rgba(147,197,253,0.20) 0%, rgba(96,165,250,0.08) 50%, transparent 75%)",
+          filter: `blur(${blur(0.06)})`,
+        }} />
+        <div className="absolute" style={{
+          bottom: "-4%", left: "12%", width: "76%", height: "28%",
+          background: "radial-gradient(ellipse at 50% 82%, rgba(96,165,250,0.14) 0%, transparent 70%)",
           filter: `blur(${blur(0.05)})`,
         }} />
-        {/* Great Dark Spot */}
+
+        {/* Great Dark Spot — deep void */}
         <div className="absolute" style={{
-          top: "35%", left: "22%", width: "28%", height: "16%",
-          background: "radial-gradient(ellipse at 45% 50%, rgba(5,10,30,0.92) 0%, rgba(10,18,50,0.75) 45%, transparent 80%)",
-          filter: `blur(${blur(0.022)})`,
+          top: "34%", left: "20%", width: "30%", height: "18%",
+          background: "radial-gradient(ellipse at 45% 50%, rgba(3,7,24,0.95) 0%, rgba(8,14,42,0.80) 48%, transparent 80%)",
+          filter: `blur(${blur(0.024)})`,
           transform: "rotate(-8deg)",
         }} />
-        {/* Scooter cloud */}
+        {/* Dark Spot inner swirl */}
         <div className="absolute" style={{
-          top: "44%", left: "48%", width: "14%", height: "6%",
-          background: "radial-gradient(ellipse, rgba(186,230,253,0.55) 0%, rgba(147,197,253,0.25) 55%, transparent 80%)",
-          filter: `blur(${blur(0.018)})`,
+          top: "37%", left: "24%", width: "20%", height: "12%",
+          background: "radial-gradient(ellipse at 42% 48%, rgba(15,23,60,0.88) 0%, transparent 75%)",
+          filter: `blur(${blur(0.016)})`,
+          transform: "rotate(-10deg)",
         }} />
-        {/* Cirrus streaks */}
+
+        {/* Scooter cloud — bright brushstroke */}
         <div className="absolute" style={{
-          top: "22%", left: "30%", width: "32%", height: "4%",
-          background: "linear-gradient(90deg, transparent, rgba(186,230,253,0.35) 40%, rgba(219,234,254,0.22) 60%, transparent)",
-          filter: `blur(${blur(0.015)})`,
-          transform: "rotate(-3deg)",
+          top: "43%", left: "47%", width: "16%", height: "7%",
+          background: "radial-gradient(ellipse, rgba(219,234,254,0.65) 0%, rgba(186,230,253,0.32) 50%, transparent 80%)",
+          filter: `blur(${blur(0.016)})`,
         }} />
-        {/* Surface banding */}
+
+        {/* Cirrus streaks — painterly wisps */}
+        <div className="absolute" style={{
+          top: "21%", left: "28%", width: "36%", height: "4%",
+          background: "linear-gradient(90deg, transparent, rgba(186,230,253,0.40) 35%, rgba(219,234,254,0.28) 58%, transparent)",
+          filter: `blur(${blur(0.014)})`,
+          transform: "rotate(-2.5deg)",
+        }} />
+        <div className="absolute" style={{
+          top: "57%", left: "12%", width: "28%", height: "3%",
+          background: "linear-gradient(92deg, transparent, rgba(147,197,253,0.30) 40%, rgba(186,230,253,0.18) 65%, transparent)",
+          filter: `blur(${blur(0.014)})`,
+          transform: "rotate(1.5deg)",
+        }} />
+        <div className="absolute" style={{
+          top: "30%", left: "55%", width: "24%", height: "3%",
+          background: "linear-gradient(88deg, transparent, rgba(186,230,253,0.25) 45%, transparent)",
+          filter: `blur(${blur(0.012)})`,
+          transform: "rotate(-1deg)",
+        }} />
+
+        {/* Atmospheric banding — oil-painting texture */}
         <div className="absolute inset-0" style={{
           backgroundImage:
-            "repeating-linear-gradient(178deg, transparent 0%, rgba(30,58,138,0.20) 3%, transparent 6%, rgba(59,130,246,0.08) 9%, transparent 13%)",
+            "repeating-linear-gradient(177deg, transparent 0%, rgba(30,58,138,0.22) 2.5%, transparent 5.5%, rgba(59,130,246,0.10) 8.5%, transparent 12%)",
           mixBlendMode: "overlay",
         }} />
-        {/* Terminator */}
+
+        {/* Chromatic aberration — blue limb glow (left) */}
         <div className="absolute inset-0" style={{
-          background: "radial-gradient(circle at 68% 58%, transparent 26%, rgba(0,0,0,0.38) 52%, rgba(0,0,0,0.80) 88%)",
+          background: "radial-gradient(ellipse at 8% 50%, rgba(96,165,250,0.18) 0%, transparent 38%)",
+          mixBlendMode: "screen",
         }} />
-        {/* Specular */}
+
+        {/* Terminator shadow */}
+        <div className="absolute inset-0" style={{
+          background: "radial-gradient(circle at 68% 60%, transparent 22%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.82) 88%)",
+        }} />
+
+        {/* Painting grain overlay */}
+        <div className="absolute inset-0 rounded-full" style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E\")",
+          backgroundSize: "160px 160px",
+          opacity: 0.55,
+          mixBlendMode: "overlay",
+        }} />
+
+        {/* Primary specular highlight */}
         <div className="absolute rounded-full" style={{
-          top: `${size * 0.08}px`, left: `${size * 0.22}px`,
-          width: size * 0.20, height: size * 0.13,
-          background: "radial-gradient(circle, rgba(186,230,253,0.38) 0%, rgba(147,197,253,0.12) 52%, transparent 78%)",
-          filter: `blur(${blur(0.011)})`,
+          top: `${size * 0.07}px`, left: `${size * 0.20}px`,
+          width: size * 0.24, height: size * 0.15,
+          background: "radial-gradient(circle, rgba(219,234,254,0.52) 0%, rgba(186,230,253,0.22) 45%, transparent 75%)",
+          filter: `blur(${blur(0.012)})`,
+        }} />
+        {/* Secondary soft catch-light */}
+        <div className="absolute rounded-full" style={{
+          top: `${size * 0.14}px`, left: `${size * 0.28}px`,
+          width: size * 0.10, height: size * 0.06,
+          background: "radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%)",
+          filter: `blur(${blur(0.006)})`,
         }} />
       </div>
     </div>
   );
 }
 
-// CSS spiral galaxy.
 interface GalaxyProps {
   size: number;
   coreColor: string;
   armColor: string;
   outerColor: string;
-  tiltDeg: number;       // disc tilt (makes it look like an inclined spiral)
-  armRotate: number;     // angle offset for spiral arms
-  driftDuration: number; // slow drift animation speed
+  tiltDeg: number;
+  armRotate: number;
+  driftDuration: number;
   style?: React.CSSProperties;
   label?: string;
   labelColor?: string;
+  parallaxRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function Galaxy({ size, coreColor, armColor, outerColor, tiltDeg, armRotate, driftDuration, style, label, labelColor }: GalaxyProps) {
+function Galaxy({ size, coreColor, armColor, outerColor, tiltDeg, armRotate, driftDuration, style, label, labelColor, parallaxRef }: GalaxyProps) {
   return (
-    <div className="absolute pointer-events-none" style={{ width: size, height: size, ...style }}>
+    <div ref={parallaxRef} className="absolute pointer-events-none" style={{ width: size, height: size, ...style }}>
       <div style={{ width: size, height: size, position: "relative", animation: `nebula-drift ${driftDuration}s ease-in-out infinite` }}>
-
-        {/* Outer diffuse cloud */}
         <div style={{
-          position: "absolute",
-          inset: `-${size * 0.35}px`,
+          position: "absolute", inset: `-${size * 0.35}px`,
           background: `radial-gradient(ellipse at 50% 50%, ${outerColor}14 0%, ${outerColor}06 40%, transparent 68%)`,
-          filter: `blur(${size * 0.18}px)`,
-          transform: `rotate(${tiltDeg * 0.3}deg)`,
+          filter: `blur(${size * 0.18}px)`, transform: `rotate(${tiltDeg * 0.3}deg)`,
         }} />
-
-        {/* Main disc — flattened ellipse */}
         <div style={{
           position: "absolute", inset: 0,
           background: `radial-gradient(ellipse at 50% 50%, ${coreColor}cc 0%, ${armColor}88 18%, ${outerColor}55 40%, ${outerColor}22 62%, transparent 80%)`,
-          borderRadius: "50%",
-          transform: `rotate(${tiltDeg}deg) scaleY(0.28)`,
+          borderRadius: "50%", transform: `rotate(${tiltDeg}deg) scaleY(0.28)`,
           filter: `blur(${Math.max(1, size * 0.014)}px)`,
         }} />
-
-        {/* Spiral arm 1 */}
         <div style={{
           position: "absolute", inset: 0,
           background: `radial-gradient(ellipse at 62% 46%, ${armColor}70 0%, ${armColor}38 28%, transparent 60%)`,
-          borderRadius: "50%",
-          transform: `rotate(${tiltDeg + armRotate}deg) scaleY(0.18) scaleX(1.5)`,
+          borderRadius: "50%", transform: `rotate(${tiltDeg + armRotate}deg) scaleY(0.18) scaleX(1.5)`,
           filter: `blur(${Math.max(1, size * 0.016)}px)`,
         }} />
-
-        {/* Spiral arm 2 (opposite) */}
         <div style={{
           position: "absolute", inset: 0,
           background: `radial-gradient(ellipse at 38% 54%, ${armColor}65 0%, ${armColor}32 28%, transparent 58%)`,
-          borderRadius: "50%",
-          transform: `rotate(${tiltDeg + armRotate + 180}deg) scaleY(0.18) scaleX(1.5)`,
+          borderRadius: "50%", transform: `rotate(${tiltDeg + armRotate + 180}deg) scaleY(0.18) scaleX(1.5)`,
           filter: `blur(${Math.max(1, size * 0.016)}px)`,
         }} />
-
-        {/* Spiral arm 3 — fainter, offset */}
         <div style={{
           position: "absolute", inset: 0,
           background: `radial-gradient(ellipse at 68% 38%, ${armColor}40 0%, ${outerColor}20 35%, transparent 62%)`,
-          borderRadius: "50%",
-          transform: `rotate(${tiltDeg + armRotate + 70}deg) scaleY(0.14) scaleX(1.7)`,
+          borderRadius: "50%", transform: `rotate(${tiltDeg + armRotate + 70}deg) scaleY(0.14) scaleX(1.7)`,
           filter: `blur(${Math.max(1, size * 0.02)}px)`,
         }} />
-
-        {/* Dust lane overlay */}
         <div style={{
           position: "absolute", inset: 0,
           background: `radial-gradient(ellipse at 50% 50%, transparent 0%, transparent 14%, rgba(0,0,0,0.30) 22%, transparent 35%)`,
-          borderRadius: "50%",
-          transform: `rotate(${tiltDeg + 5}deg) scaleY(0.10)`,
+          borderRadius: "50%", transform: `rotate(${tiltDeg + 5}deg) scaleY(0.10)`,
           filter: `blur(${Math.max(1, size * 0.008)}px)`,
         }} />
-
-        {/* Bright galactic core */}
         <div style={{
-          position: "absolute",
-          top: "50%", left: "50%",
+          position: "absolute", top: "50%", left: "50%",
           transform: "translate(-50%, -50%)",
-          width: size * 0.10,
-          height: size * 0.10,
-          borderRadius: "50%",
+          width: size * 0.10, height: size * 0.10, borderRadius: "50%",
           background: `radial-gradient(circle, #fff 0%, ${coreColor} 35%, transparent 78%)`,
           boxShadow: `0 0 ${size * 0.08}px ${coreColor}, 0 0 ${size * 0.18}px ${armColor}66`,
           filter: `blur(${Math.max(0.5, size * 0.007)}px)`,
         }} />
-
-        {/* Core secondary glow */}
         <div style={{
-          position: "absolute",
-          top: "50%", left: "50%",
+          position: "absolute", top: "50%", left: "50%",
           transform: "translate(-50%, -50%)",
-          width: size * 0.26,
-          height: size * 0.26,
-          borderRadius: "50%",
+          width: size * 0.26, height: size * 0.26, borderRadius: "50%",
           background: `radial-gradient(circle, ${coreColor}44 0%, transparent 70%)`,
           filter: `blur(${Math.max(1, size * 0.018)}px)`,
         }} />
       </div>
-
-      {/* Faint label */}
       {label && (
         <p style={{
-          position: "absolute",
-          bottom: `-${size * 0.22}px`,
-          left: "50%",
-          transform: "translateX(-50%)",
-          fontSize: "9px",
-          fontFamily: "monospace",
-          letterSpacing: "0.35em",
-          textTransform: "uppercase",
-          color: labelColor ?? "rgba(147,197,253,0.35)",
-          whiteSpace: "nowrap",
-        }}>
-          {label}
-        </p>
+          position: "absolute", bottom: `-${size * 0.22}px`, left: "50%",
+          transform: "translateX(-50%)", fontSize: "9px", fontFamily: "monospace",
+          letterSpacing: "0.35em", textTransform: "uppercase",
+          color: labelColor ?? "rgba(147,197,253,0.35)", whiteSpace: "nowrap",
+        }}>{label}</p>
       )}
     </div>
   );
@@ -202,12 +234,12 @@ function Galaxy({ size, coreColor, armColor, outerColor, tiltDeg, armRotate, dri
 function CosmicDust() {
   const dots = Array.from({ length: 55 }, (_, i) => ({
     id: i,
-    left: Math.random() * 100,
-    top: Math.random() * 100,
-    size: Math.random() * 1.8 + 0.3,
-    delay: Math.random() * 8,
-    duration: 4 + Math.random() * 7,
-    blue: Math.random() > 0.55,
+    left: (i * 37.3 + 11) % 100,
+    top: (i * 59.7 + 23) % 100,
+    size: (i % 6) * 0.28 + 0.4,
+    delay: (i % 9) * 0.9,
+    duration: 4 + (i % 7),
+    blue: i % 3 !== 0,
   }));
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -227,6 +259,15 @@ function CosmicDust() {
 export default function NeptuneMuseum() {
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const neptuneWrapRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const g1Ref = useRef<HTMLDivElement>(null);
+  const g2Ref = useRef<HTMLDivElement>(null);
+  const g3Ref = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
+  const currentTilt = useRef({ x: 0, y: 0 });
+  const targetTilt = useRef({ x: 0, y: 0 });
+  const isHovering = useRef(false);
 
   useEffect(() => {
     function update() {
@@ -242,16 +283,83 @@ export default function NeptuneMuseum() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
+  // RAF-based spring interpolation — no React re-renders during animation
+  useEffect(() => {
+    const spring = 0.07; // spring stiffness (lower = smoother/slower)
+    const dampen = 0.78; // velocity damping
+
+    let vx = 0, vy = 0;
+
+    const tick = () => {
+      const dx = targetTilt.current.x - currentTilt.current.x;
+      const dy = targetTilt.current.y - currentTilt.current.y;
+      vx = vx * dampen + dx * spring;
+      vy = vy * dampen + dy * spring;
+      currentTilt.current.x += vx;
+      currentTilt.current.y += vy;
+
+      const tx = currentTilt.current.x;
+      const ty = currentTilt.current.y;
+
+      // Neptune 3D tilt
+      if (neptuneWrapRef.current) {
+        neptuneWrapRef.current.style.transform =
+          `perspective(900px) rotateX(${tx}deg) rotateY(${ty}deg)`;
+      }
+
+      // Glow shifts opposite (light stays "in place" as planet rotates)
+      if (glowRef.current) {
+        glowRef.current.style.transform =
+          `translate(calc(-50% + ${-ty * 1.8}px), calc(-50% + ${tx * 1.8}px))`;
+      }
+
+      // Galaxy parallax — move slightly opposite direction for depth
+      if (g1Ref.current) {
+        g1Ref.current.style.transform = `translateY(-42%) translate(${-ty * 2.2}px, ${tx * 1.6}px)`;
+      }
+      if (g2Ref.current) {
+        g2Ref.current.style.transform = `translateY(-55%) translate(${-ty * 1.8}px, ${tx * 1.4}px)`;
+      }
+      if (g3Ref.current) {
+        g3Ref.current.style.transform = `translateY(0%) translate(${-ty * 1.4}px, ${tx * 1.0}px)`;
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    isHovering.current = true;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const nx = (e.clientX - cx) / (rect.width * 0.5); // -1 to 1
+    const ny = (e.clientY - cy) / (rect.height * 0.5);
+    // Max 18° tilt on Y (left-right), 12° on X (up-down)
+    targetTilt.current = { x: -ny * 12, y: nx * 18 };
+  };
+
+  const handleMouseLeave = () => {
+    isHovering.current = false;
+    targetTilt.current = { x: 0, y: 0 };
+  };
+
   const neptuneSize = 260 * scale;
 
   return (
     <section
       ref={containerRef}
       className="relative w-full overflow-hidden"
-      style={{ minHeight: "100vh", background: "#010813" }}
+      style={{ minHeight: "100vh", background: "#010813", cursor: "crosshair" }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Deep blue cosmos gradient */}
-      <div className="absolute inset-0" style={{
+      <div className="absolute inset-0 pointer-events-none" style={{
         background:
           "radial-gradient(ellipse at 20% 15%, rgba(59,130,246,0.08) 0%, transparent 40%)," +
           "radial-gradient(ellipse at 80% 80%, rgba(29,78,216,0.07) 0%, transparent 45%)," +
@@ -261,8 +369,7 @@ export default function NeptuneMuseum() {
 
       {/* Distant sun */}
       <div className="absolute pointer-events-none" style={{
-        top: "10%", left: "16%",
-        width: 3, height: 3, borderRadius: "50%",
+        top: "10%", left: "16%", width: 3, height: 3, borderRadius: "50%",
         background: "#fef9e7",
         boxShadow: "0 0 10px rgba(254,249,231,0.9), 0 0 30px rgba(254,249,231,0.35), 0 0 65px rgba(254,249,231,0.12)",
       }} />
@@ -289,15 +396,12 @@ export default function NeptuneMuseum() {
           Neptune &amp; the{" "}
           <span style={{
             background: "linear-gradient(135deg, #818cf8 0%, #a78bfa 40%, #c084fc 80%, #e879f9 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            fontStyle: "italic",
-            fontWeight: 300,
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            backgroundClip: "text", fontStyle: "italic", fontWeight: 300,
           }}>Interstellar Deep</span>
         </h2>
         <p className="text-blue-300/28 text-[11px] md:text-xs mt-3 max-w-sm mx-auto animate-fade-in-delay-2 font-light tracking-[0.15em]">
-          At the edge of the solar system, the galaxy opens.
+          Move your cursor — feel the gravity.
         </p>
       </div>
 
@@ -310,54 +414,36 @@ export default function NeptuneMuseum() {
         }}
       >
         {/* ── GALAXIES ─────────────────────────────────────────────── */}
-
-        {/* Left galaxy — barred spiral, warm amber/gold (NGC 1300-ish) */}
         <Galaxy
           size={220 * scale}
-          coreColor="#fbbf24"
-          armColor="#f59e0b"
-          outerColor="#d97706"
-          tiltDeg={-38}
-          armRotate={52}
-          driftDuration={55}
-          label="NGC 1300"
-          labelColor="rgba(251,191,36,0.30)"
+          coreColor="#fbbf24" armColor="#f59e0b" outerColor="#d97706"
+          tiltDeg={-38} armRotate={52} driftDuration={55}
+          label="NGC 1300" labelColor="rgba(251,191,36,0.30)"
+          parallaxRef={g1Ref}
           style={{
             left: `calc(50% - ${neptuneSize * 1.55 + 220 * scale * 0.5}px)`,
             top: "50%",
             transform: "translateY(-42%)",
           }}
         />
-
-        {/* Right galaxy — face-on spiral, cool violet/blue (M74-ish) */}
         <Galaxy
           size={170 * scale}
-          coreColor="#a78bfa"
-          armColor="#7c3aed"
-          outerColor="#6d28d9"
-          tiltDeg={22}
-          armRotate={-35}
-          driftDuration={45}
-          label="M 74"
-          labelColor="rgba(167,139,250,0.30)"
+          coreColor="#a78bfa" armColor="#7c3aed" outerColor="#6d28d9"
+          tiltDeg={22} armRotate={-35} driftDuration={45}
+          label="M 74" labelColor="rgba(167,139,250,0.30)"
+          parallaxRef={g2Ref}
           style={{
             left: `calc(50% + ${neptuneSize * 1.45 + 170 * scale * 0.2}px)`,
             top: "50%",
             transform: "translateY(-55%)",
           }}
         />
-
-        {/* Background distant galaxy — edge-on sliver, blue-white */}
         <Galaxy
           size={100 * scale}
-          coreColor="#e0f2fe"
-          armColor="#7dd3fc"
-          outerColor="#38bdf8"
-          tiltDeg={5}
-          armRotate={90}
-          driftDuration={70}
-          label="NGC 4565"
-          labelColor="rgba(125,211,252,0.25)"
+          coreColor="#e0f2fe" armColor="#7dd3fc" outerColor="#38bdf8"
+          tiltDeg={5} armRotate={90} driftDuration={70}
+          label="NGC 4565" labelColor="rgba(125,211,252,0.25)"
+          parallaxRef={g3Ref}
           style={{
             left: `calc(50% + ${neptuneSize * 0.3}px)`,
             top: `${18 * scale}%`,
@@ -367,27 +453,37 @@ export default function NeptuneMuseum() {
 
         {/* ── NEPTUNE ──────────────────────────────────────────────── */}
 
-        {/* Outer diffuse blue glow */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{
-          width: neptuneSize * 4.8,
-          height: neptuneSize * 4.8,
-          background: "radial-gradient(circle, rgba(29,78,216,0.07) 0%, rgba(37,99,235,0.03) 32%, transparent 60%)",
-          filter: "blur(80px)",
-        }} />
+        {/* Outer diffuse blue glow — shifts with mouse */}
+        <div
+          ref={glowRef}
+          className="absolute left-1/2 top-1/2 pointer-events-none"
+          style={{
+            transform: "translate(-50%, -50%)",
+            width: neptuneSize * 4.8, height: neptuneSize * 4.8,
+            background: "radial-gradient(circle, rgba(29,78,216,0.09) 0%, rgba(37,99,235,0.04) 32%, transparent 60%)",
+            filter: "blur(80px)",
+          }}
+        />
 
         {/* Inner breathing halo */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{
-          width: neptuneSize * 2.2,
-          height: neptuneSize * 2.2,
-          background: "radial-gradient(circle, rgba(37,99,235,0.14) 0%, rgba(29,78,216,0.06) 40%, transparent 65%)",
+          width: neptuneSize * 2.2, height: neptuneSize * 2.2,
+          background: "radial-gradient(circle, rgba(37,99,235,0.16) 0%, rgba(29,78,216,0.07) 40%, transparent 65%)",
           filter: "blur(38px)",
           animation: "halo-breathe 9s ease-in-out infinite",
         }} />
 
-        {/* Neptune planet */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-          style={{ animation: "pluto-float 16s ease-in-out infinite" }}>
-          <NeptuneBody size={neptuneSize} />
+        {/* Neptune planet — 3D tilt applied via ref */}
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
+          style={{ animation: "pluto-float 16s ease-in-out infinite" }}
+        >
+          <div
+            ref={neptuneWrapRef}
+            style={{ willChange: "transform", transformOrigin: "center center" }}
+          >
+            <NeptuneBody size={neptuneSize} />
+          </div>
         </div>
 
         {/* Neptune label */}
