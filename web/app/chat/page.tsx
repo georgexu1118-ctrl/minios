@@ -273,7 +273,7 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <main ref={scrollContainerRef} className="relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-8 min-h-0">
+      <main ref={scrollContainerRef} className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 md:px-8 min-h-0">
         <div className="max-w-3xl mx-auto">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center min-h-[55vh] text-center gap-8">
