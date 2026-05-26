@@ -107,7 +107,7 @@ export default function ChatMessage({ msg }: { msg: Message }) {
       </div>
 
       {/* Bubble */}
-      <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
+      <div className={`min-w-0 max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
         {msg.toolCalls && msg.toolCalls.length > 0 && (
           <div className="flex flex-wrap">
             {msg.toolCalls.map((tc, i) => (
