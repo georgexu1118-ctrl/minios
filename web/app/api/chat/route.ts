@@ -591,6 +591,26 @@ export async function POST(req: NextRequest) {
   const shouldPrefetchNews = !isFlashcards && !hasImage && needsLiveNews(latestUserQuery);
   const shouldPrefetchStocks = !isFlashcards && !hasImage && needsStockQuotes(latestUserQuery);
 
+  // ── Server-side URL pre-fetch ──────────────────────────────────────────────
+  // When the user pastes URLs in their message, fetch them immediately on the
+  // server and inject the text as context — no tool-call round-trip needed.
+  // This avoids the model's context window overflowing with large tool results
+  // and removes one full network round-trip from the critical path.
+  // Limited to 3 URLs, 6 000 chars each (stays safely inside 8 192-tok window).
+  const urlsInQuery = !isFlashcards && !hasImage
+    ? (latestUserQuery.match(/https?:\/\/[^\s"'<>)]+/g) ?? []).slice(0, 3)
+    : [];
+  let prefetchedUrlContext = "";
+  if (urlsInQuery.length > 0) {
+    const fetched = await Promise.all(urlsInQuery.map(u => fetchPage(u)));
+    const parts = fetched
+      .map((r, i) => r.text
+        ? `=== URL ${i + 1}: ${urlsInQuery[i]} ===\n${String(r.text).slice(0, 6000)}\n=== END URL ${i + 1} ===`
+        : `=== URL ${i + 1}: ${urlsInQuery[i]} — fetch failed: ${r.error} ===`)
+      .join("\n\n");
+    prefetchedUrlContext = parts;
+  }
+
   // If a screenshot image was attached, upgrade the last user message to a vision content array
   if (body.image && rawMessages.length > 0) {
     const last = rawMessages[rawMessages.length - 1];
@@ -608,6 +628,14 @@ export async function POST(req: NextRequest) {
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: sysPrompt },
   ];
+
+  // Inject pre-fetched URL content before user messages
+  if (prefetchedUrlContext) {
+    messages.push({
+      role: "system",
+      content: "The following URLs were fetched from the user's message and their full text content is provided below. Use this content to answer the user's question directly — do NOT call fetch_page again for these URLs.\n\n" + prefetchedUrlContext,
+    });
+  }
 
   // PDF context: inject extracted text as an additional system message so the
   // model can cite it across every turn (sent fresh with each request).
