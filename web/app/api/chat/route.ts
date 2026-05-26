@@ -253,7 +253,7 @@ async function fetchPage(url: string): Promise<Record<string, unknown>> {
         "Accept": "text/html,application/xhtml+xml,text/plain",
       },
       cache: "no-store",
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(7000),
     });
     if (!res.ok) return { error: `HTTP ${res.status} from ${url}` };
 
@@ -681,9 +681,10 @@ export async function POST(req: NextRequest) {
         const hasPrefetchedResearch = shouldPrefetchNews || shouldPrefetchStocks;
         const useTools = !hasImage && !hasPrefetchedResearch;
         const isEdu = requested === "gpt-oss-20b";
-        // Educational model needs high token budget for multi-problem contests (10 Q's × ~200 tok each).
-        // Vision mode caps at 1200 for fast screenshot solving.
-        const maxTok = hasImage ? 1200 : isEdu ? 4000 : 800;
+        // Edu: 2000 tok — enough for 10 contest answers with brief working (~150 tok/Q).
+        // Vision: 1200 tok — screenshot solving is concise by design.
+        // General: 800 tok — keeps TTFT fast for conversational use.
+        const maxTok = hasImage ? 1200 : isEdu ? 2000 : 800;
 
         if (hasPrefetchedResearch) {
           let newsResult: Record<string, unknown> | undefined;
@@ -779,7 +780,7 @@ export async function POST(req: NextRequest) {
             break;
           }
 
-          // Execute tools
+          // Execute tools — all in parallel so two fetch_page calls don't stack.
           const assistantMsg: OpenAI.Chat.ChatCompletionMessageParam = {
             role: "assistant",
             content: content || null,
@@ -790,18 +791,27 @@ export async function POST(req: NextRequest) {
           };
           messages.push(assistantMsg);
 
-          for (const tc of tcList) {
+          // Parse args and emit call events first (so UI shows badges immediately)
+          const parsedArgs = tcList.map(tc => {
             let args: Record<string, string> = {};
             try { args = JSON.parse(tc.args || "{}"); } catch { /* bad json */ }
-
             send({ type: "tool_call", tool: tc.name, args });
+            return { tc, args };
+          });
 
-            let result: Record<string, unknown>;
-            if (tc.name === "get_stock") result = await getStock(args.symbol ?? "");
-            else if (tc.name === "web_search") result = await webSearch(args.query ?? "");
-            else if (tc.name === "fetch_page") result = await fetchPage(args.url ?? "");
-            else result = { error: `unknown tool ${tc.name}` };
+          // Fire all tool calls concurrently
+          const toolResults = await Promise.all(
+            parsedArgs.map(async ({ tc, args }) => {
+              let result: Record<string, unknown>;
+              if (tc.name === "get_stock") result = await getStock(args.symbol ?? "");
+              else if (tc.name === "web_search") result = await webSearch(args.query ?? "");
+              else if (tc.name === "fetch_page") result = await fetchPage(args.url ?? "");
+              else result = { error: `unknown tool ${tc.name}` };
+              return { tc, args, result };
+            })
+          );
 
+          for (const { tc, result } of toolResults) {
             send({ type: "tool_result", tool: tc.name, result });
             messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
           }
