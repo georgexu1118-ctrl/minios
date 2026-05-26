@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+// useRef kept for containerRef (resize observer)
 
 // ---------------------------------------------------------------------------
 // Neptune + Interstellar Galaxies — deep-space cinematic scene
@@ -161,12 +162,11 @@ interface GalaxyProps {
   style?: React.CSSProperties;
   label?: string;
   labelColor?: string;
-  parallaxRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function Galaxy({ size, coreColor, armColor, outerColor, tiltDeg, armRotate, driftDuration, style, label, labelColor, parallaxRef }: GalaxyProps) {
+function Galaxy({ size, coreColor, armColor, outerColor, tiltDeg, armRotate, driftDuration, style, label, labelColor }: GalaxyProps) {
   return (
-    <div ref={parallaxRef} className="absolute pointer-events-none" style={{ width: size, height: size, ...style }}>
+    <div className="absolute pointer-events-none" style={{ width: size, height: size, ...style }}>
       <div style={{ width: size, height: size, position: "relative", animation: `nebula-drift ${driftDuration}s ease-in-out infinite` }}>
         <div style={{
           position: "absolute", inset: `-${size * 0.35}px`,
@@ -259,15 +259,6 @@ function CosmicDust() {
 export default function NeptuneMuseum() {
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
-  const neptuneWrapRef = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  const g1Ref = useRef<HTMLDivElement>(null);
-  const g2Ref = useRef<HTMLDivElement>(null);
-  const g3Ref = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>(0);
-  const currentTilt = useRef({ x: 0, y: 0 });
-  const targetTilt = useRef({ x: 0, y: 0 });
-  const isHovering = useRef(false);
 
   useEffect(() => {
     function update() {
@@ -283,80 +274,13 @@ export default function NeptuneMuseum() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // RAF-based spring interpolation — no React re-renders during animation
-  useEffect(() => {
-    const spring = 0.07; // spring stiffness (lower = smoother/slower)
-    const dampen = 0.78; // velocity damping
-
-    let vx = 0, vy = 0;
-
-    const tick = () => {
-      const dx = targetTilt.current.x - currentTilt.current.x;
-      const dy = targetTilt.current.y - currentTilt.current.y;
-      vx = vx * dampen + dx * spring;
-      vy = vy * dampen + dy * spring;
-      currentTilt.current.x += vx;
-      currentTilt.current.y += vy;
-
-      const tx = currentTilt.current.x;
-      const ty = currentTilt.current.y;
-
-      // Neptune 3D tilt
-      if (neptuneWrapRef.current) {
-        neptuneWrapRef.current.style.transform =
-          `perspective(900px) rotateX(${tx}deg) rotateY(${ty}deg)`;
-      }
-
-      // Glow shifts opposite (light stays "in place" as planet rotates)
-      if (glowRef.current) {
-        glowRef.current.style.transform =
-          `translate(calc(-50% + ${-ty * 1.8}px), calc(-50% + ${tx * 1.8}px))`;
-      }
-
-      // Galaxy parallax — move slightly opposite direction for depth
-      if (g1Ref.current) {
-        g1Ref.current.style.transform = `translateY(-42%) translate(${-ty * 2.2}px, ${tx * 1.6}px)`;
-      }
-      if (g2Ref.current) {
-        g2Ref.current.style.transform = `translateY(-55%) translate(${-ty * 1.8}px, ${tx * 1.4}px)`;
-      }
-      if (g3Ref.current) {
-        g3Ref.current.style.transform = `translateY(0%) translate(${-ty * 1.4}px, ${tx * 1.0}px)`;
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    isHovering.current = true;
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const nx = (e.clientX - cx) / (rect.width * 0.5); // -1 to 1
-    const ny = (e.clientY - cy) / (rect.height * 0.5);
-    // Max 18° tilt on Y (left-right), 12° on X (up-down)
-    targetTilt.current = { x: -ny * 12, y: nx * 18 };
-  };
-
-  const handleMouseLeave = () => {
-    isHovering.current = false;
-    targetTilt.current = { x: 0, y: 0 };
-  };
-
   const neptuneSize = 260 * scale;
 
   return (
     <section
       ref={containerRef}
       className="relative w-full overflow-hidden"
-      style={{ minHeight: "100vh", background: "#010813", cursor: "crosshair" }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      style={{ minHeight: "100vh", background: "#010813" }}
     >
       {/* Deep blue cosmos gradient */}
       <div className="absolute inset-0 pointer-events-none" style={{
@@ -401,7 +325,7 @@ export default function NeptuneMuseum() {
           }}>Interstellar Deep</span>
         </h2>
         <p className="text-blue-300/28 text-[11px] md:text-xs mt-3 max-w-sm mx-auto animate-fade-in-delay-2 font-light tracking-[0.15em]">
-          Move your cursor — feel the gravity.
+          At the edge of the solar system, the galaxy opens.
         </p>
       </div>
 
@@ -419,7 +343,6 @@ export default function NeptuneMuseum() {
           coreColor="#fbbf24" armColor="#f59e0b" outerColor="#d97706"
           tiltDeg={-38} armRotate={52} driftDuration={55}
           label="NGC 1300" labelColor="rgba(251,191,36,0.30)"
-          parallaxRef={g1Ref}
           style={{
             left: `calc(50% - ${neptuneSize * 1.55 + 220 * scale * 0.5}px)`,
             top: "50%",
@@ -431,7 +354,6 @@ export default function NeptuneMuseum() {
           coreColor="#a78bfa" armColor="#7c3aed" outerColor="#6d28d9"
           tiltDeg={22} armRotate={-35} driftDuration={45}
           label="M 74" labelColor="rgba(167,139,250,0.30)"
-          parallaxRef={g2Ref}
           style={{
             left: `calc(50% + ${neptuneSize * 1.45 + 170 * scale * 0.2}px)`,
             top: "50%",
@@ -443,7 +365,6 @@ export default function NeptuneMuseum() {
           coreColor="#e0f2fe" armColor="#7dd3fc" outerColor="#38bdf8"
           tiltDeg={5} armRotate={90} driftDuration={70}
           label="NGC 4565" labelColor="rgba(125,211,252,0.25)"
-          parallaxRef={g3Ref}
           style={{
             left: `calc(50% + ${neptuneSize * 0.3}px)`,
             top: `${18 * scale}%`,
@@ -453,17 +374,12 @@ export default function NeptuneMuseum() {
 
         {/* ── NEPTUNE ──────────────────────────────────────────────── */}
 
-        {/* Outer diffuse blue glow — shifts with mouse */}
-        <div
-          ref={glowRef}
-          className="absolute left-1/2 top-1/2 pointer-events-none"
-          style={{
-            transform: "translate(-50%, -50%)",
-            width: neptuneSize * 4.8, height: neptuneSize * 4.8,
-            background: "radial-gradient(circle, rgba(29,78,216,0.09) 0%, rgba(37,99,235,0.04) 32%, transparent 60%)",
-            filter: "blur(80px)",
-          }}
-        />
+        {/* Outer diffuse blue glow */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{
+          width: neptuneSize * 4.8, height: neptuneSize * 4.8,
+          background: "radial-gradient(circle, rgba(29,78,216,0.09) 0%, rgba(37,99,235,0.04) 32%, transparent 60%)",
+          filter: "blur(80px)",
+        }} />
 
         {/* Inner breathing halo */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{
@@ -473,17 +389,12 @@ export default function NeptuneMuseum() {
           animation: "halo-breathe 9s ease-in-out infinite",
         }} />
 
-        {/* Neptune planet — 3D tilt applied via ref */}
+        {/* Neptune planet */}
         <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
           style={{ animation: "pluto-float 16s ease-in-out infinite" }}
         >
-          <div
-            ref={neptuneWrapRef}
-            style={{ willChange: "transform", transformOrigin: "center center" }}
-          >
-            <NeptuneBody size={neptuneSize} />
-          </div>
+          <NeptuneBody size={neptuneSize} />
         </div>
 
         {/* Neptune label */}
