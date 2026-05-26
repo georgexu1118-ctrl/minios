@@ -295,7 +295,10 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   },
 ];
 
-const MATH_LATEX_RULE = " Always use LaTeX: $x^2$ inline, $$...$$ display. Never bare ^ or _.";
+const MATH_LATEX_RULE =
+  " Always use valid LaTeX delimiters: $x^2$ for short inline math and $$...$$ for displayed equations. " +
+  "Put each equation chain on its own single display block, for example $$(3x)^2 = (2\\sqrt{2})^2 + 4^2 = 24$$. " +
+  "Never mix delimited and undelimited expressions on one equation line, and never output bare ^ or _.";
 
 const SYSTEM_PROMPT =
   "You are AAOS — the Autonomous AI OS — an advanced intelligence running on a custom " +

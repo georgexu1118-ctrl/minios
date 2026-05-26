@@ -17,7 +17,7 @@ const API_BASE = "";
 const SUGGESTED = [
   "What is AAOI trading at right now?",
   "Latest news on Anthropic or OpenAI?",
-  "Explain how the AAOS kernel handles COM1 serial I/O",
+  "Find all primes p such that p² + 2 is prime.",
   "Compare AAOI vs NVDA YTD performance",
   "What are the biggest tech stories today?",
   "How does gravitational lensing work?",

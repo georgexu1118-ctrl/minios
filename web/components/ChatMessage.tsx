@@ -25,25 +25,54 @@ function ToolBadge({ tool, args }: { tool: string; args: Record<string, unknown>
   );
 }
 
-// Convert LaTeX delimiters that remark-math doesn't recognize natively,
-// and auto-wrap bare math expressions the model may still emit without $ delimiters.
-function normalizeMath(text: string): string {
-  // Split on code fences so we never mangle code blocks
-  const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
-  return parts.map((part, i) => {
-    // Odd-indexed parts are code spans/blocks — leave untouched
-    if (i % 2 === 1) return part;
-    return part
-      // \[ ... \] → $$ ... $$ (display math)
-      .replace(/\\\[([\s\S]*?)\\\]/g, (_m, body) => `\n$$${body}$$\n`)
-      // \( ... \) → $ ... $ (inline math)
-      .replace(/\\\(([\s\S]*?)\\\)/g, (_m, body) => `$${body}$`)
-      // Bare superscripts like x^2, e^{-x}, r^n not already inside $ delimiters.
-      // Restricted to short bases (1-3 chars) to avoid matching things like "Python^3".
-      .replace(
-        /(?<!\$)(?<![:/])([A-Za-z0-9]{1,3}\^\{?[A-Za-z0-9+\-]+\}?)(?!\$)/g,
-        (_m, expr) => `$${expr}$`
-      );
+function isStandaloneEquation(line: string): boolean {
+  const expression = line.trim().replace(/^(?:[-*]\s+|\d+[.)]\s+)/, "");
+  if (!expression.includes("=") || !/(?:\\(?:frac|sqrt)|\^|_)/.test(expression)) return false;
+
+  const withoutCommands = expression
+    .replace(/\$/g, "")
+    .replace(/\\[A-Za-z]+/g, "")
+    .replace(/\b(?:sin|cos|tan|log|ln|max|min)\b/g, "");
+
+  return !/\b[A-Za-z]{2,}\b/.test(withoutCommands);
+}
+
+function normalizeOutsideMath(text: string): string {
+  const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[^$\n]*\$)/g);
+  return parts.map((part, index) => {
+    if (index % 2 === 1) return part;
+    return part.replace(
+      /(?<![:/])\b([A-Za-z0-9]{1,3}\^\{?[A-Za-z0-9+\-]+\}?)/g,
+      (_match, expression) => `$${expression}$`
+    );
+  }).join("");
+}
+
+export function normalizeMath(text: string): string {
+  const codeParts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
+  return codeParts.map((part, index) => {
+    if (index % 2 === 1) return part;
+
+    const normalizedDelimiters = part
+      .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body) => `\n$$${body}$$\n`)
+      .replace(/\\\(([\s\S]*?)\\\)/g, (_match, body) => `$${body}$`);
+
+    return normalizedDelimiters
+      .split("\n")
+      .map(line => {
+        if (isStandaloneEquation(line)) {
+          const listPrefix = line.match(/^(\s*(?:[-*]|\d+[.)])\s+)(.*)$/);
+          const prefix = listPrefix?.[1] ?? "";
+          const expression = (listPrefix?.[2] ?? line)
+            .replace(/\$\s+\$/g, " \\\\\n")
+            .replace(/(\d)\s+\$(?=[A-Za-z(])/g, "$1 \\\\\n$")
+            .replace(/\$/g, "")
+            .trim();
+          return `${prefix}$$\n${expression}\n$$`;
+        }
+        return normalizeOutsideMath(line);
+      })
+      .join("\n");
   }).join("");
 }
 
