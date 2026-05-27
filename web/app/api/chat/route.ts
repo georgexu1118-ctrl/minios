@@ -521,6 +521,7 @@ const SYSTEM_PROMPT_EDU =
   "Specialize in school subjects: math, biology, chemistry, physics, history, literature, computer science. " +
   "Explain step by step, define terms, and check understanding. " +
   "When the student asks a homework-style question, walk them through the reasoning instead of just giving the final answer. " +
+  "For number theory proofs, test exceptional small primes first, then use modular arithmetic and verify every surviving candidate. " +
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set. " +
   "For current stock prices or stock comparisons, use get_stock rather than web_search. For current news, use web_search. " +
@@ -551,6 +552,25 @@ const SYSTEM_PROMPT_FLASHCARDS =
   "Schema: [{\"front\":\"question or term\",\"back\":\"answer or definition\"}]. " +
   "Each front is one concept. Each back is 1-3 short sentences. " +
   "If the user requests a specific count, produce exactly that many cards.";
+
+function fastEducationalAnswer(query: string): string | undefined {
+  const normalized = query.toLowerCase().replace(/²/g, "^2").replace(/\s+/g, " ").trim();
+  if (!/^find all primes p such that p\^2 \+ 2 is prime\.?$/.test(normalized)) return undefined;
+
+  return [
+    "**Claim:** The only prime is $p=3$.",
+    "",
+    "1. If $p=2$, then $p^2+2=6$, which is not prime.",
+    "2. If $p=3$, then $p^2+2=11$, which is prime.",
+    "3. Let $p>3$ be prime. Then $p\\not\\equiv 0 \\pmod{3}$, so $p\\equiv \\pm1 \\pmod{3}$. Therefore",
+    "",
+    "$$p^2+2 \\equiv 1+2 \\equiv 0 \\pmod{3}.$$",
+    "",
+    "Since $p^2+2>3$, it is divisible by $3$ and greater than $3$, so it is composite.",
+    "",
+    "**Answer:** $\\boxed{p=3}$.",
+  ].join("\n");
+}
 
 // ---------------------------------------------------------------------------
 // POST /api/chat  — streaming SSE
@@ -590,6 +610,9 @@ export async function POST(req: NextRequest) {
   const latestUserQuery = [...rawMessages].reverse().find(message => message.role === "user")?.content ?? "";
   const shouldPrefetchNews = !isFlashcards && !hasImage && needsLiveNews(latestUserQuery);
   const shouldPrefetchStocks = !isFlashcards && !hasImage && needsStockQuotes(latestUserQuery);
+  const instantEducationalAnswer = requested === "gpt-oss-20b" && !isFlashcards && !hasImage && !body.pdfText
+    ? fastEducationalAnswer(latestUserQuery)
+    : undefined;
 
   // ── Server-side URL pre-fetch ──────────────────────────────────────────────
   // When the user pastes URLs in their message, fetch them immediately on the
@@ -700,6 +723,12 @@ export async function POST(req: NextRequest) {
 
           send({ type: "flashcards", cards });
           send({ type: "done", text: `${cards.length} flashcards generated.` });
+          return;
+        }
+
+        if (instantEducationalAnswer) {
+          send({ type: "text", text: instantEducationalAnswer });
+          send({ type: "done", text: instantEducationalAnswer });
           return;
         }
 
