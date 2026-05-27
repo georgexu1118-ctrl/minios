@@ -9,8 +9,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "AAOS Research",
   icons: {
-    icon: "/og-image.png",
-    shortcut: "/og-image.png",
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
     apple: "/og-image.png",
   },
   description: "A Hermes-powered AI agent running inside a hand-crafted 32-bit x86 kernel — live market data, web search, and reasoning streamed via Next.js",
