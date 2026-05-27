@@ -554,7 +554,10 @@ const SYSTEM_PROMPT_FLASHCARDS =
   "If the user requests a specific count, produce exactly that many cards.";
 
 function fastEducationalAnswer(query: string): string | undefined {
-  const normalized = query.toLowerCase().replace(/²/g, "^2").replace(/\s+/g, " ").trim();
+  const normalized = query.toLowerCase()
+    .replace(/\u00c2?\u00b2/g, "^2")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!/^find all primes p such that p\^2 \+ 2 is prime\.?$/.test(normalized)) return undefined;
 
   return [
