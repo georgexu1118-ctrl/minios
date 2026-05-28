@@ -57,14 +57,19 @@ const labs = [
 
 function TutorMascot({ className = "" }: { className?: string }) {
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={{
+        maskImage: "radial-gradient(ellipse 80% 85% at 62% 60%, black 30%, transparent 68%)",
+        WebkitMaskImage: "radial-gradient(ellipse 80% 85% at 62% 60%, black 30%, transparent 68%)",
+      }}
+    >
       <Image
         src="/baby-yoda.png"
         alt="Grogu"
         width={180}
         height={200}
         className="w-full h-auto object-contain"
-        style={{ mixBlendMode: "screen" }}
         priority
       />
     </div>
