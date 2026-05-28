@@ -155,8 +155,8 @@ export default function HomePage() {
                   </p>
 
                   {card.featured && (
-                    <div className="pointer-events-none absolute bottom-0 right-0 hidden md:block">
-                      <TutorMascot className="w-52" />
+                    <div className="pointer-events-none absolute bottom-0 right-0">
+                      <TutorMascot className="w-32 md:w-52" />
                     </div>
                   )}
 
