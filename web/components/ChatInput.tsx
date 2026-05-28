@@ -102,9 +102,7 @@ export default function ChatInput({
     try {
       const buffer = await file.arrayBuffer();
       // Dynamic import keeps the PDF.js bundle out of the initial JS load.
-      const { extractText, configureUnpdf } = await import("unpdf");
-      // Run in main thread (no Worker needed in browser environments).
-      configureUnpdf({ workerSrc: "" } as Parameters<typeof configureUnpdf>[0]);
+      const { extractText } = await import("unpdf");
       const { text } = await extractText(new Uint8Array(buffer));
       const pages = Array.isArray(text) ? text : [text];
       const joined = pages
