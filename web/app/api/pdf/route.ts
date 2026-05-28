@@ -3,8 +3,8 @@ import { extractText } from "unpdf";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB hard cap
-const MAX_CHARS = 60_000;               // ~15k tokens — fits Scout/4o-mini context easily
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB hard cap
+const MAX_CHARS = 150_000;               // ~37k tokens — covers 50+ page documents
 
 // Fast path: pull text from the PDF, normalize whitespace, return it as one
 // blob the chat route can stuff into a system message. Skips embeddings
@@ -25,8 +25,12 @@ export async function POST(request: Request) {
     }
 
     const { totalPages, text } = await extractText(new Uint8Array(await file.arrayBuffer()));
-    const joined = (Array.isArray(text) ? text : [text])
-      .map(pageText => (pageText ?? "").replace(/\s+/g, " ").trim())
+    const pages = (Array.isArray(text) ? text : [text]);
+    const joined = pages
+      .map((pageText, i) => {
+        const cleaned = (pageText ?? "").replace(/\s+/g, " ").trim();
+        return cleaned ? `[Page ${i + 1}]\n${cleaned}` : "";
+      })
       .filter(Boolean)
       .join("\n\n");
 

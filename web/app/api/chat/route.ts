@@ -621,7 +621,8 @@ export async function POST(req: NextRequest) {
     : requested === "gpt-oss-20b" ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
   // Cap history at 10 messages (5 exchanges) — keeps input tokens lean for fast TTFT.
-  const rawMessages = (body.messages ?? []).slice(-10).map(m => ({
+  const hasPdfBody = !!(body.pdfText && body.pdfText.trim());
+  const rawMessages = (body.messages ?? []).slice(hasPdfBody ? -20 : -10).map(m => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
@@ -685,9 +686,14 @@ export async function POST(req: NextRequest) {
     messages.push({
       role: "system",
       content:
-        `The user has attached a PDF named "${pdfName}". Use its contents to answer questions ` +
-        `about the document. When you reference facts from it, cite as (${pdfName}). ` +
-        `If a question is unrelated to the PDF, answer normally.\n\n` +
+        `The user has attached a PDF named "${pdfName}" (full text below). ` +
+        `IMPORTANT INSTRUCTIONS FOR THIS PDF:\n` +
+        `1. If the document is in a language other than English, translate every question and answer into English first, then answer.\n` +
+        `2. If this is an exam or quiz, identify ALL questions and provide the correct answer for each one. ` +
+        `Number your answers to match the question numbers. Be thorough — cover every question in the document.\n` +
+        `3. For driving exams: provide the correct answer (A/B/C/D or True/False) AND a brief explanation of the rule.\n` +
+        `4. When referencing specific content, cite the page number as (p. N).\n` +
+        `5. If asked to "give all answers", output a clean numbered list: Q1 → [Answer]: [Brief reason].\n\n` +
         `=== PDF TEXT START ===\n${body.pdfText}\n=== PDF TEXT END ===`,
     });
   }
@@ -756,12 +762,14 @@ export async function POST(req: NextRequest) {
         const hasPrefetchedResearch = shouldPrefetchNews || shouldPrefetchStocks;
         const isEdu = requested === "gpt-oss-20b";
         const isCoding = requested === "nouscoder-14b";
+        const hasPdf = !!(body.pdfText && body.pdfText.trim());
         const useTools = !hasImage && !hasPrefetchedResearch && !isCoding;
+        // Edu+PDF: 6000 tok — covers answering a full 47-page exam with explanations.
         // Edu: 2000 tok — enough for 10 contest answers with brief working (~150 tok/Q).
         // Vision: 1200 tok — screenshot solving is concise by design.
         // General: 800 tok — keeps TTFT fast for conversational use.
         // Coding: 1800 tok — enough for useful snippets without bogging down streaming.
-        const maxTok = hasImage ? 1200 : isEdu ? 2000 : isCoding ? 1800 : 800;
+        const maxTok = hasImage ? 1200 : (isEdu && hasPdf) ? 6000 : isEdu ? 2000 : isCoding ? 1800 : 800;
 
         if (hasPrefetchedResearch) {
           let newsResult: Record<string, unknown> | undefined;
