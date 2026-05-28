@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 
-const NAV = [
+const NAV: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "Research" },
   { href: "/chat", label: "Chat" },
 ];
