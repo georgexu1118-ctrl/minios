@@ -64,6 +64,7 @@ function TutorMascot({ className = "" }: { className?: string }) {
         width={180}
         height={200}
         className="w-full h-auto object-contain"
+        style={{ mixBlendMode: "screen" }}
         priority
       />
     </div>
@@ -148,7 +149,7 @@ export default function HomePage() {
 
                   {card.featured && (
                     <div className="pointer-events-none absolute bottom-0 right-0 hidden md:block">
-                      <TutorMascot className="w-40 mix-blend-screen opacity-90" />
+                      <TutorMascot className="w-52" />
                     </div>
                   )}
 
