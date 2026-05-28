@@ -3,23 +3,6 @@ export const runtime = "edge";
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
 
-// Three providers, all speaking OpenAI Chat Completions.
-//   • gpt-4o-mini  → OpenAI direct (closed, fast, reliable, always default fallback)
-//   • gpt-oss-20b  → Groq if GROQ_API_KEY set (very fast LPU), else Together AI
-const MODELS: Record<string, { tries: { apiKeyEnv: string; baseURL?: string; modelId: string }[] }> = {
-  "gpt-4o-mini": {
-    tries: [
-      { apiKeyEnv: "OPENAI_API_KEY", modelId: "gpt-4o-mini" },
-    ],
-  },
-  "gpt-oss-20b": {
-    tries: [
-      { apiKeyEnv: "GROQ_API_KEY",     baseURL: "https://api.groq.com/openai/v1",  modelId: "openai/gpt-oss-20b" },
-      { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1",     modelId: "openai/gpt-oss-20b" },
-    ],
-  },
-};
-
 const FLASHCARD_SYSTEM =
   "You are AAOS Study — a fast, accurate exam flashcard generator. " +
   "Output ONLY raw JSON in this exact shape — no markdown fences, no commentary, no preamble: " +
@@ -71,7 +54,7 @@ function repairTruncatedJSON(s: string): string {
 function extractCards(raw: string): Flashcard[] {
   if (!raw) return [];
 
-  let candidate = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  const candidate = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
 
   // case 1: object with "cards" key
   let parsed: unknown = null;
@@ -162,7 +145,6 @@ export async function POST(req: NextRequest) {
   const count = Math.min(Math.max(body.count ?? 8, 1), 20);
   const difficulty = body.difficulty ?? "mixed";
   const requested = body.model ?? "gpt-oss-20b";
-  const primary = MODELS[requested] ?? MODELS["gpt-oss-20b"];
 
   // Build attempt order with per-provider timeouts so the whole call stays
   // under Vercel's 25s edge function limit even if one provider hangs.

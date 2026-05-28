@@ -20,10 +20,7 @@ const INTERVAL = "1d";
 export default function FloatingAaoiTicker() {
   const [data, setData] = useState<ChartData | null>(null);
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const timer = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -68,8 +65,6 @@ export default function FloatingAaoiTicker() {
   }
   const rangeY = (maxY - minY) || 1;
   const yPx = (v: number) => PAD_Y + innerH - ((v - minY) / rangeY) * innerH;
-
-  if (!mounted) return null;
 
   return (
     <>
