@@ -172,6 +172,12 @@ html, body {
   from { transform: scale(0.82); opacity: 0; filter: blur(8px); }
   to   { transform: scale(1);    opacity: 1; filter: blur(0);   }
 }
+@keyframes yoda-float {
+  0%   { transform: translateY(0px) rotate(-1.5deg); }
+  30%  { transform: translateY(-7px) rotate(1deg); }
+  60%  { transform: translateY(-4px) rotate(-0.5deg); }
+  100% { transform: translateY(0px) rotate(-1.5deg); }
+}
 
 /* ── Animation classes ───────────────────────────────────────────── */
 .animate-spin-slow          { animation: spin-slow 25s linear infinite; }

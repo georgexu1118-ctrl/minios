@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, ArrowLeft, RotateCcw, Briefcase, GraduationCap, Sparkles } from "lucide-react";
+import { Zap, ArrowLeft, RotateCcw, Sparkles } from "lucide-react";
 import ChatMessage, { type Message } from "@/components/ChatMessage";
 import ChatInput, { type PdfAttachment } from "@/components/ChatInput";
 import NebulaLayers from "@/components/NebulaLayers";
@@ -223,30 +223,25 @@ export default function ChatPage() {
             {MODELS.map(m => {
               const active = model === m.id;
               const accent = m.accent;
-              const styles = accent === "emerald"
+              const isEdu = accent === "emerald";
+              const styles = isEdu
                 ? { bg: "bg-emerald-900/40", border: "border-emerald-500/60", shadow: "shadow-emerald-900/30",
-                    iconBg: "bg-emerald-700/40", iconText: "text-emerald-300",
                     badgeBg: "bg-emerald-700/40", badgeText: "text-emerald-200", badgeBorder: "border-emerald-500/30",
                     dot: "bg-emerald-400" }
                 : { bg: "bg-violet-900/40", border: "border-violet-500/60", shadow: "shadow-violet-900/30",
-                    iconBg: "bg-violet-700/40", iconText: "text-violet-300",
                     badgeBg: "bg-violet-700/40", badgeText: "text-violet-200", badgeBorder: "border-violet-500/30",
                     dot: "bg-violet-400" };
-              const Icon = accent === "emerald" ? GraduationCap : Briefcase;
               return (
                 <button key={m.id}
                   onClick={() => setModel(m.id)}
                   disabled={loading}
                   className={`relative rounded-xl p-3 md:p-4 text-left transition-all duration-200
-                    cursor-pointer disabled:cursor-not-allowed disabled:opacity-60
+                    cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 overflow-hidden
                     ${active
                       ? `${styles.bg} ${styles.border} shadow-lg ${styles.shadow}`
                       : "glass border-violet-700/20 hover:border-violet-500/40"}
                     border-2`}>
-                  <div className="flex items-start gap-2.5">
-                    <div className={`mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${styles.iconBg}`}>
-                      <Icon size={14} className={styles.iconText} />
-                    </div>
+                  <div className="flex items-start">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
                         <span className="text-sm md:text-base font-bold text-white tracking-tight">
@@ -257,7 +252,7 @@ export default function ChatPage() {
                           {m.role}
                         </span>
                       </div>
-                      <p className="text-[11px] text-violet-300/70 leading-snug">
+                      <p className="text-[11px] text-violet-300/70 leading-snug pr-14">
                         {m.desc}
                       </p>
                     </div>
@@ -265,6 +260,53 @@ export default function ChatPage() {
                       <div className={`absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse ${styles.dot}`} />
                     )}
                   </div>
+
+                  {/* Baby Yoda — educational card only */}
+                  {isEdu && (
+                    <div className="absolute bottom-0 right-1 w-[62px] pointer-events-none select-none"
+                      style={{ animation: "yoda-float 3.2s ease-in-out infinite" }}>
+                      <svg viewBox="0 0 100 138" xmlns="http://www.w3.org/2000/svg">
+                        {/* Robe */}
+                        <path d="M26 95 Q50 110 74 95 L80 132 Q50 142 20 132 Z" fill="#7a5c2a"/>
+                        <path d="M33 100 Q50 112 67 100 L70 128 Q50 136 30 128 Z" fill="#8f6d35"/>
+                        {/* Neck */}
+                        <rect x="43" y="88" width="14" height="11" rx="4" fill="#5fa832"/>
+                        {/* Left ear */}
+                        <ellipse cx="13" cy="54" rx="13" ry="7.5" fill="#5fa832" transform="rotate(-28 13 54)"/>
+                        <ellipse cx="13" cy="54" rx="9" ry="5" fill="#c4907a" transform="rotate(-28 13 54)"/>
+                        {/* Right ear */}
+                        <ellipse cx="87" cy="54" rx="13" ry="7.5" fill="#5fa832" transform="rotate(28 87 54)"/>
+                        <ellipse cx="87" cy="54" rx="9" ry="5" fill="#c4907a" transform="rotate(28 87 54)"/>
+                        {/* Head */}
+                        <ellipse cx="50" cy="58" rx="29" ry="27" fill="#6ab83a"/>
+                        {/* Forehead wrinkles */}
+                        <path d="M36 44 Q50 40 64 44" stroke="#4a8020" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.6"/>
+                        <path d="M40 49 Q50 46 60 49" stroke="#4a8020" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.4"/>
+                        {/* Eyes */}
+                        <circle cx="39" cy="58" r="7.5" fill="#120800"/>
+                        <circle cx="61" cy="58" r="7.5" fill="#120800"/>
+                        {/* Eye shine */}
+                        <circle cx="42" cy="54.5" r="2.5" fill="white" opacity="0.9"/>
+                        <circle cx="64" cy="54.5" r="2.5" fill="white" opacity="0.9"/>
+                        <circle cx="40" cy="60" r="1" fill="white" opacity="0.4"/>
+                        <circle cx="62" cy="60" r="1" fill="white" opacity="0.4"/>
+                        {/* Nose */}
+                        <ellipse cx="50" cy="68" rx="4" ry="3" fill="#4a8020"/>
+                        <circle cx="48" cy="67" r="1" fill="#3a6015" opacity="0.5"/>
+                        <circle cx="52" cy="67" r="1" fill="#3a6015" opacity="0.5"/>
+                        {/* Smile */}
+                        <path d="M41 76 Q50 83 59 76" stroke="#3a6015" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                        {/* Little hands reaching out cutely */}
+                        <ellipse cx="24" cy="118" rx="8" ry="5" fill="#6ab83a" transform="rotate(-25 24 118)"/>
+                        <ellipse cx="76" cy="118" rx="8" ry="5" fill="#6ab83a" transform="rotate(25 76 118)"/>
+                        {/* Finger lines */}
+                        <line x1="20" y1="116" x2="23" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
+                        <line x1="25" y1="115" x2="27" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
+                        <line x1="73" y1="115" x2="75" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
+                        <line x1="78" y1="116" x2="77" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
+                      </svg>
+                    </div>
+                  )}
                 </button>
               );
             })}
