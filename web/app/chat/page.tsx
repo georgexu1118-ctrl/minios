@@ -231,6 +231,7 @@ export default function ChatPage() {
               const active = model === m.id;
               const accent = m.accent;
               const isEdu = accent === "emerald";
+              const orderClass = m.id === "nouscoder-14b" ? "lg:order-2" : m.id === "gpt-oss-20b" ? "lg:order-3" : "lg:order-1";
               const styles = isEdu
                 ? { bg: "bg-emerald-900/40", border: "border-emerald-500/60", shadow: "shadow-emerald-900/30",
                     badgeBg: "bg-emerald-700/40", badgeText: "text-emerald-200", badgeBorder: "border-emerald-500/30",
@@ -248,6 +249,7 @@ export default function ChatPage() {
                   disabled={loading}
                   className={`relative rounded-xl p-3 md:p-4 text-left transition-all duration-200
                     cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 overflow-hidden
+                    ${orderClass}
                     ${active
                       ? `${styles.bg} ${styles.border} shadow-lg ${styles.shadow}`
                       : "glass border-violet-700/20 hover:border-violet-500/40"}
@@ -263,7 +265,7 @@ export default function ChatPage() {
                           {m.role}
                         </span>
                       </div>
-                      <p className="text-[11px] text-violet-300/70 leading-snug pr-14">
+                      <p className="text-[11px] text-violet-300/70 leading-snug">
                         {m.desc}
                       </p>
                     </div>
@@ -284,34 +286,6 @@ export default function ChatPage() {
         <div className="max-w-3xl mx-auto">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center min-h-[55vh] text-center gap-8">
-              <div className="animate-fade-in">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden mx-auto mb-4"
-                  style={{
-                    boxShadow: "0 0 24px rgba(139,92,246,0.5), 0 0 50px rgba(124,58,237,0.22)",
-                    border: "1.5px solid rgba(139,92,246,0.50)",
-                  }}>
-                  <Image
-                    src="/galileo-moon.webp"
-                    alt="AAOS"
-                    width={64} height={64}
-                    className="w-full h-full object-cover object-top"
-                    style={{ filter: "sepia(1) hue-rotate(222deg) saturate(2.0) brightness(0.68) contrast(1.3)", transform: "scale(1.06)" }}
-                  />
-                </div>
-                <h2 className="text-2xl font-bold text-gradient mb-2">
-                  AAOS Research
-                </h2>
-                <p className="text-violet-400/60 text-sm max-w-sm">
-                  Intelligence from a custom OS kernel. Ask about stocks,
-                  current events, science, or anything in the universe.
-                </p>
-                <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
-                  Pick <span className="text-white font-semibold">Kimi K2</span> (Moonshot, frontier reasoning) or
-                  <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork), or
-                  <span className="text-white font-semibold"> NousCoder 14B</span> (coding).
-                  GPT-OSS supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
-                </p>
-              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl animate-fade-in-delay-1">
                 {SUGGESTED.map(s => (

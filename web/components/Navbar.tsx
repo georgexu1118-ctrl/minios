@@ -54,14 +54,11 @@ export default function Navbar() {
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-1">
           {NAV.map(n => {
-            const active = !n.external && path === n.href;
-            const Tag = n.external ? "a" : Link;
-            const extraProps = n.external ? { target: "_blank", rel: "noopener noreferrer" } : {};
+            const active = path === n.href;
             return (
-              <Tag
+              <Link
                 key={n.href}
                 href={n.href}
-                {...extraProps}
                 className={`px-4 py-1.5 rounded-lg text-[13px] tracking-wide transition-all duration-200
                   ${active
                     ? "text-violet-200 bg-violet-800/30 border border-violet-600/30"
@@ -69,7 +66,7 @@ export default function Navbar() {
                   }`}
               >
                 {n.label}
-              </Tag>
+              </Link>
             );
           })}
         </div>
@@ -85,14 +82,12 @@ export default function Navbar() {
         <div className="md:hidden glass border-t px-4 py-3 flex flex-col gap-1"
           style={{ borderColor: "rgba(120,60,240,0.12)" }}>
           {NAV.map(n => {
-            const Tag = n.external ? "a" : Link;
-            const extraProps = n.external ? { target: "_blank", rel: "noopener noreferrer" } : {};
             return (
-              <Tag key={n.href} href={n.href} {...extraProps}
+              <Link key={n.href} href={n.href}
                 onClick={() => setOpen(false)}
                 className="px-3 py-2 rounded-lg text-sm text-violet-300 hover:bg-violet-900/30 transition-colors">
                 {n.label}
-              </Tag>
+              </Link>
             );
           })}
         </div>
