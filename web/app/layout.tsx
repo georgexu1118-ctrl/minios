@@ -13,12 +13,12 @@ export const metadata: Metadata = {
     shortcut: "/icon.svg",
     apple: "/og-image.png",
   },
-  description: "A Hermes-powered AI agent running inside a hand-crafted 32-bit x86 kernel — live market data, web search, and reasoning streamed via Next.js",
-  keywords: ["AI", "OS", "kernel", "research", "autonomous", "Hermes", "Nous Research"],
+  description: "AAOS Research is an autonomous AI lab interface with reasoning, coding, educational models, live market data, web search, and document intelligence.",
+  keywords: ["AI", "OS", "kernel", "research", "autonomous", "AAOS", "NousCoder"],
   metadataBase: new URL("https://aaos-research.vercel.app"),
   openGraph: {
     title: "AAOS Research — Autonomous AI OS",
-    description: "A Hermes-powered AI agent running inside a hand-crafted 32-bit x86 kernel — live market data, web search, and reasoning streamed via Next.js",
+    description: "AAOS Research is an autonomous AI lab interface with reasoning, coding, educational models, live market data, web search, and document intelligence.",
     url: "https://aaos-research.vercel.app",
     siteName: "AAOS Research",
     images: [
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1280,
         height: 720,
-        alt: "AAOS Research — Our work at Nous is built on this vision",
+        alt: "AAOS Research model lab",
       },
     ],
     locale: "en_US",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "AAOS Research — Autonomous AI OS",
-    description: "A Hermes-powered AI agent running inside a hand-crafted 32-bit x86 kernel — live market data, web search, and reasoning streamed via Next.js",
+    description: "AAOS Research is an autonomous AI lab interface with reasoning, coding, educational models, live market data, web search, and document intelligence.",
     images: ["/og-image.png"],
   },
 };

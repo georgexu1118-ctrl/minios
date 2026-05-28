@@ -38,6 +38,13 @@ const MODELS = [
     desc: "OpenAI open weights · ~1000 tok/s · schoolwork, screenshot problem solving, flashcards",
     accent: "emerald",
   },
+  {
+    id: "nouscoder-14b",
+    label: "NousCoder 14B",
+    role: "Coding",
+    desc: "NousResearch code model · generation, analysis, refactors, and debugging",
+    accent: "blue",
+  },
 ] as const;
 
 type ModelId = typeof MODELS[number]["id"];
@@ -219,7 +226,7 @@ export default function ChatPage() {
           <p className="text-center text-[10px] font-mono tracking-[0.25em] text-violet-400/70 uppercase mb-3">
             Choose your model
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
             {MODELS.map(m => {
               const active = model === m.id;
               const accent = m.accent;
@@ -228,9 +235,13 @@ export default function ChatPage() {
                 ? { bg: "bg-emerald-900/40", border: "border-emerald-500/60", shadow: "shadow-emerald-900/30",
                     badgeBg: "bg-emerald-700/40", badgeText: "text-emerald-200", badgeBorder: "border-emerald-500/30",
                     dot: "bg-emerald-400" }
-                : { bg: "bg-violet-900/40", border: "border-violet-500/60", shadow: "shadow-violet-900/30",
-                    badgeBg: "bg-violet-700/40", badgeText: "text-violet-200", badgeBorder: "border-violet-500/30",
-                    dot: "bg-violet-400" };
+                : accent === "blue"
+                  ? { bg: "bg-blue-900/40", border: "border-blue-500/60", shadow: "shadow-blue-900/30",
+                      badgeBg: "bg-blue-700/40", badgeText: "text-blue-200", badgeBorder: "border-blue-500/30",
+                      dot: "bg-blue-400" }
+                  : { bg: "bg-violet-900/40", border: "border-violet-500/60", shadow: "shadow-violet-900/30",
+                      badgeBg: "bg-violet-700/40", badgeText: "text-violet-200", badgeBorder: "border-violet-500/30",
+                      dot: "bg-violet-400" };
               return (
                 <button key={m.id}
                   onClick={() => setModel(m.id)}
@@ -342,7 +353,8 @@ export default function ChatPage() {
                 </p>
                 <p className="text-violet-500/50 text-[11px] max-w-md mx-auto mt-3">
                   Pick <span className="text-white font-semibold">Kimi K2</span> (Moonshot, frontier reasoning) or
-                  <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork).
+                  <span className="text-white font-semibold"> GPT-OSS 20B</span> (open, schoolwork), or
+                  <span className="text-white font-semibold"> NousCoder 14B</span> (coding).
                   GPT-OSS supports <span className="text-emerald-300 font-semibold">screenshot problem solving</span> and flashcards.
                 </p>
               </div>
@@ -380,7 +392,7 @@ export default function ChatPage() {
             onPdfChange={setPdf}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · Kimi K2 · GPT-OSS 20B · Screenshots · Flashcards · Live Web
+            AAOS Research · Kimi K2 · GPT-OSS 20B · NousCoder 14B · Screenshots · Flashcards · Live Web
           </p>
         </div>
       </footer>

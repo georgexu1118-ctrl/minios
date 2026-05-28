@@ -366,7 +366,7 @@ type ProviderConfig = {
   apiKeyEnv: string;
   baseURL?: string;
   modelId: string;
-  mode: "general" | "educational" | "vision";
+  mode: "general" | "educational" | "coding" | "vision";
 };
 
 // Educational layer (gpt-oss-20b selected): Groq LPU first (fastest, 1000 tok/s), Together AI fallback.
@@ -396,6 +396,16 @@ const GENERAL_PROVIDERS: ProviderConfig[] = [
   { apiKeyEnv: "TOGETHER_API_KEY",  baseURL: "https://api.together.xyz/v1",          modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",   mode: "general" },
 ];
 
+// Coding layer — NousCoder-14B via Hugging Face Router when HF_TOKEN is configured,
+// with code-specialist fallbacks so the UI still works in deployments without HF.
+const CODING_PROVIDERS: ProviderConfig[] = [
+  { apiKeyEnv: "HF_TOKEN",               baseURL: "https://router.huggingface.co/v1", modelId: "NousResearch/NousCoder-14B",             mode: "coding" },
+  { apiKeyEnv: "HUGGINGFACE_API_KEY",    baseURL: "https://router.huggingface.co/v1", modelId: "NousResearch/NousCoder-14B",             mode: "coding" },
+  { apiKeyEnv: "TOGETHER_API_KEY",       baseURL: "https://api.together.xyz/v1",      modelId: "Qwen/Qwen2.5-Coder-32B-Instruct",        mode: "coding" },
+  { apiKeyEnv: "TOGETHER_API_KEY",       baseURL: "https://api.together.xyz/v1",      modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", mode: "coding" },
+  { apiKeyEnv: "GROQ_API_KEY",           baseURL: "https://api.groq.com/openai/v1",   modelId: "llama-3.3-70b-versatile",                mode: "coding" },
+];
+
 // Vision layer: Groq LPU first (fastest), Together AI fallback.
 const VISION_PROVIDERS: ProviderConfig[] = [
   { apiKeyEnv: "GROQ_API_KEY",    baseURL: "https://api.groq.com/openai/v1", modelId: "meta-llama/llama-4-scout-17b-16e-instruct", mode: "vision" },
@@ -405,6 +415,7 @@ const VISION_PROVIDERS: ProviderConfig[] = [
 function resolveProviderChain(requested: string, hasImage: boolean): ProviderConfig[] {
   if (hasImage && requested !== "gpt-4o-mini") return VISION_PROVIDERS;
   if (requested === "gpt-oss-20b") return EDU_PROVIDERS;
+  if (requested === "nouscoder-14b") return CODING_PROVIDERS;
   return GENERAL_PROVIDERS;
 }
 
@@ -535,6 +546,12 @@ const SYSTEM_PROMPT_EDU =
   STEM_RULES +
   CHEMISTRY_OF_SOLUTIONS;
 
+const SYSTEM_PROMPT_CODING =
+  "You are AAOS Coder — a precise coding assistant powered by the AAOS Research coding lane. " +
+  "Write correct, minimal, production-ready code. Prefer small focused patches, explain tradeoffs briefly, " +
+  "and ask clarifying questions only when the implementation would otherwise be unsafe. " +
+  "When debugging, identify the root cause first, then give the fix. Use markdown code fences for code.";
+
 const SYSTEM_PROMPT_VISION =
   "You are AAOS Scholar — an expert academic solver. The user uploaded a screenshot of a problem. " +
   "Solve it correctly and concisely. Cover up to undergraduate level (calculus, linear algebra, ODEs, " +
@@ -600,6 +617,7 @@ export async function POST(req: NextRequest) {
 
   const sysPrompt = isFlashcards ? SYSTEM_PROMPT_FLASHCARDS
     : hasImage ? SYSTEM_PROMPT_VISION
+    : requested === "nouscoder-14b" ? SYSTEM_PROMPT_CODING
     : requested === "gpt-oss-20b" ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
   // Cap history at 10 messages (5 exchanges) — keeps input tokens lean for fast TTFT.
@@ -736,12 +754,14 @@ export async function POST(req: NextRequest) {
         // Vision mode: skip tool calls (focus on solving), trim tokens for fast streaming.
         // 1200 is enough for ~95% of undergrad problems with concise step-by-step work.
         const hasPrefetchedResearch = shouldPrefetchNews || shouldPrefetchStocks;
-        const useTools = !hasImage && !hasPrefetchedResearch;
         const isEdu = requested === "gpt-oss-20b";
+        const isCoding = requested === "nouscoder-14b";
+        const useTools = !hasImage && !hasPrefetchedResearch && !isCoding;
         // Edu: 2000 tok — enough for 10 contest answers with brief working (~150 tok/Q).
         // Vision: 1200 tok — screenshot solving is concise by design.
         // General: 800 tok — keeps TTFT fast for conversational use.
-        const maxTok = hasImage ? 1200 : isEdu ? 2000 : 800;
+        // Coding: 1800 tok — enough for useful snippets without bogging down streaming.
+        const maxTok = hasImage ? 1200 : isEdu ? 2000 : isCoding ? 1800 : 800;
 
         if (hasPrefetchedResearch) {
           let newsResult: Record<string, unknown> | undefined;
