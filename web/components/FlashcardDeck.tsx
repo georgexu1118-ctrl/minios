@@ -1,6 +1,11 @@
 "use client";
 import { useState, useCallback } from "react";
 import { X, Loader2, ArrowLeft, ArrowRight, RotateCw, GraduationCap, Sparkles } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
+import rehypeKatex from "rehype-katex";
+import { normalizeMath } from "@/components/ChatMessage";
 
 interface Flashcard { q: string; a: string; hint?: string; }
 
@@ -184,9 +189,11 @@ export default function FlashcardDeck({ open, onClose, model }: Props) {
                     <span className="text-[10px] font-mono tracking-widest text-violet-400/60 uppercase mb-3">
                       Question
                     </span>
-                    <p className="text-lg md:text-xl font-medium text-white leading-relaxed flex-1">
-                      {card.q}
-                    </p>
+                    <div className="markdown-body text-lg md:text-xl font-medium text-white leading-relaxed flex-1 overflow-y-auto">
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {normalizeMath(card.q)}
+                      </ReactMarkdown>
+                    </div>
                     {card.hint && (
                       <p className="text-xs text-violet-300/60 italic mt-3 border-l-2 border-violet-500/30 pl-3">
                         Hint: {card.hint}
@@ -208,9 +215,11 @@ export default function FlashcardDeck({ open, onClose, model }: Props) {
                     <span className="text-[10px] font-mono tracking-widest text-emerald-400/70 uppercase mb-3">
                       Answer
                     </span>
-                    <p className="text-base md:text-lg text-violet-50 leading-relaxed flex-1 overflow-y-auto">
-                      {card.a}
-                    </p>
+                    <div className="markdown-body text-base md:text-lg text-violet-50 leading-relaxed flex-1 overflow-y-auto">
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {normalizeMath(card.a)}
+                      </ReactMarkdown>
+                    </div>
                     <p className="text-[10px] text-violet-500/40 mt-3 text-center tracking-widest uppercase">
                       Tap to flip back
                     </p>
