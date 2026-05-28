@@ -9,7 +9,6 @@ import {
   Box,
   Brain,
   Code2,
-  ExternalLink,
   Search,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -125,22 +124,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                href="https://github.com/georgexu1118-ctrl/aaos"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-zinc-100 shadow-2xl shadow-black/20 transition hover:border-white/20 hover:bg-white/[0.08]"
-              >
-                <ExternalLink size={16} /> GitHub
-              </a>
-              <Link
-                href="/chat"
-                className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-3 text-sm font-semibold text-violet-100 shadow-2xl shadow-violet-950/40 transition hover:bg-violet-500/25"
-              >
-                Launch AI <ArrowRight size={16} />
-              </Link>
-            </div>
           </div>
 
           <div className="mt-9 flex flex-wrap gap-3">
