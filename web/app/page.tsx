@@ -57,34 +57,90 @@ const labs = [
 
 function BabyYoda({ className = "" }: { className?: string }) {
   return (
-    <div className={className} style={{ animation: "yoda-float 3.2s ease-in-out infinite" }}>
-      <svg viewBox="0 0 100 138" xmlns="http://www.w3.org/2000/svg">
-        <path d="M26 95 Q50 110 74 95 L80 132 Q50 142 20 132 Z" fill="#7a5c2a" />
-        <path d="M33 100 Q50 112 67 100 L70 128 Q50 136 30 128 Z" fill="#8f6d35" />
-        <rect x="43" y="88" width="14" height="11" rx="4" fill="#5fa832" />
-        <ellipse cx="13" cy="54" rx="13" ry="7.5" fill="#5fa832" transform="rotate(-28 13 54)" />
-        <ellipse cx="13" cy="54" rx="9" ry="5" fill="#c4907a" transform="rotate(-28 13 54)" />
-        <ellipse cx="87" cy="54" rx="13" ry="7.5" fill="#5fa832" transform="rotate(28 87 54)" />
-        <ellipse cx="87" cy="54" rx="9" ry="5" fill="#c4907a" transform="rotate(28 87 54)" />
-        <ellipse cx="50" cy="58" rx="29" ry="27" fill="#6ab83a" />
-        <path d="M36 44 Q50 40 64 44" stroke="#4a8020" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.6" />
-        <path d="M40 49 Q50 46 60 49" stroke="#4a8020" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.4" />
-        <circle cx="39" cy="58" r="7.5" fill="#120800" />
-        <circle cx="61" cy="58" r="7.5" fill="#120800" />
-        <circle cx="42" cy="54.5" r="2.5" fill="white" opacity="0.9" />
-        <circle cx="64" cy="54.5" r="2.5" fill="white" opacity="0.9" />
-        <circle cx="40" cy="60" r="1" fill="white" opacity="0.4" />
-        <circle cx="62" cy="60" r="1" fill="white" opacity="0.4" />
-        <ellipse cx="50" cy="68" rx="4" ry="3" fill="#4a8020" />
-        <circle cx="48" cy="67" r="1" fill="#3a6015" opacity="0.5" />
-        <circle cx="52" cy="67" r="1" fill="#3a6015" opacity="0.5" />
-        <path d="M41 76 Q50 83 59 76" stroke="#3a6015" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-        <ellipse cx="24" cy="118" rx="8" ry="5" fill="#6ab83a" transform="rotate(-25 24 118)" />
-        <ellipse cx="76" cy="118" rx="8" ry="5" fill="#6ab83a" transform="rotate(25 76 118)" />
-        <line x1="20" y1="116" x2="23" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5" />
-        <line x1="25" y1="115" x2="27" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5" />
-        <line x1="73" y1="115" x2="75" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5" />
-        <line x1="78" y1="116" x2="77" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5" />
+    <div className={className} style={{ animation: "yoda-float 3.4s ease-in-out infinite" }}>
+      <svg viewBox="0 0 140 168" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="headGrad" cx="42%" cy="38%" r="60%">
+            <stop offset="0%" stopColor="#80d040"/>
+            <stop offset="100%" stopColor="#4a9018"/>
+          </radialGradient>
+          <radialGradient id="eyeGrad" cx="38%" cy="35%" r="55%">
+            <stop offset="0%" stopColor="#2a1400"/>
+            <stop offset="100%" stopColor="#0a0500"/>
+          </radialGradient>
+          <radialGradient id="robeGrad" cx="50%" cy="20%" r="70%">
+            <stop offset="0%" stopColor="#8a6535"/>
+            <stop offset="100%" stopColor="#5a3f1a"/>
+          </radialGradient>
+        </defs>
+
+        {/* Robe shadow / depth */}
+        <path d="M38 108 Q18 140 14 165 L126 165 Q122 140 102 108 Q70 124 38 108 Z" fill="#3e2a0e"/>
+        {/* Robe main */}
+        <path d="M40 107 Q22 138 18 163 L122 163 Q118 138 100 107 Q70 122 40 107 Z" fill="url(#robeGrad)"/>
+        {/* Robe inner fold highlight */}
+        <path d="M52 112 Q46 138 44 163 L96 163 Q94 138 88 112 Q70 121 52 112 Z" fill="#7a5a2a" opacity="0.55"/>
+        {/* Robe center crease */}
+        <path d="M70 115 Q68 138 70 163" stroke="#4a3015" strokeWidth="1.2" fill="none" opacity="0.5"/>
+
+        {/* Collar */}
+        <ellipse cx="70" cy="107" rx="14" ry="8" fill="#5a9e28"/>
+        <ellipse cx="70" cy="106" rx="11" ry="6" fill="#6ab030"/>
+
+        {/* LEFT EAR — wide, drooping leaf shape */}
+        <path d="M36 62 Q22 50 4 62 Q-4 76 8 86 Q18 92 32 84 Q40 76 38 66 Z" fill="#5fa832"/>
+        <path d="M34 64 Q23 54 7 64 Q1 75 11 83 Q19 88 31 81 Q38 74 36 67 Z" fill="#b87060"/>
+        {/* Ear vein line */}
+        <path d="M34 66 Q20 68 10 75" stroke="#4a7020" strokeWidth="0.8" fill="none" opacity="0.4"/>
+
+        {/* RIGHT EAR — mirror */}
+        <path d="M104 62 Q118 50 136 62 Q144 76 132 86 Q122 92 108 84 Q100 76 102 66 Z" fill="#5fa832"/>
+        <path d="M106 64 Q117 54 133 64 Q139 75 129 83 Q121 88 109 81 Q102 74 104 67 Z" fill="#b87060"/>
+        <path d="M106 66 Q120 68 130 75" stroke="#4a7020" strokeWidth="0.8" fill="none" opacity="0.4"/>
+
+        {/* Head */}
+        <ellipse cx="70" cy="68" rx="38" ry="36" fill="url(#headGrad)"/>
+        {/* Cheek blush */}
+        <ellipse cx="46" cy="78" rx="10" ry="6" fill="#5aaa22" opacity="0.3"/>
+        <ellipse cx="94" cy="78" rx="10" ry="6" fill="#5aaa22" opacity="0.3"/>
+
+        {/* Forehead wrinkles */}
+        <path d="M53 48 Q70 44 87 48" stroke="#3a7010" strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.55"/>
+        <path d="M57 55 Q70 52 83 55" stroke="#3a7010" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.38"/>
+
+        {/* LEFT EYE */}
+        <circle cx="51" cy="69" r="13" fill="#0e0700"/>
+        <circle cx="51" cy="69" r="11" fill="url(#eyeGrad)"/>
+        {/* Eye shine main */}
+        <circle cx="56" cy="63" r="4.5" fill="white" opacity="0.92"/>
+        {/* Eye shine secondary */}
+        <circle cx="48" cy="74" r="2" fill="white" opacity="0.3"/>
+
+        {/* RIGHT EYE */}
+        <circle cx="89" cy="69" r="13" fill="#0e0700"/>
+        <circle cx="89" cy="69" r="11" fill="url(#eyeGrad)"/>
+        <circle cx="94" cy="63" r="4.5" fill="white" opacity="0.92"/>
+        <circle cx="86" cy="74" r="2" fill="white" opacity="0.3"/>
+
+        {/* Nose — tiny, upturned */}
+        <ellipse cx="70" cy="82" rx="5.5" ry="3.5" fill="#3e7a10" opacity="0.75"/>
+        <circle cx="67" cy="81" r="1.6" fill="#2e5c0a" opacity="0.55"/>
+        <circle cx="73" cy="81" r="1.6" fill="#2e5c0a" opacity="0.55"/>
+
+        {/* Mouth — gentle happy curve */}
+        <path d="M58 92 Q70 101 82 92" stroke="#2e5c0a" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+
+        {/* Tiny arms / hands peeking from robe */}
+        <path d="M32 130 Q22 124 24 114 Q30 106 38 115 L35 130 Z" fill="#5fa832"/>
+        <ellipse cx="30" cy="132" rx="8" ry="5.5" fill="#6ab83a" transform="rotate(-20 30 132)"/>
+        <path d="M108 130 Q118 124 116 114 Q110 106 102 115 L105 130 Z" fill="#5fa832"/>
+        <ellipse cx="110" cy="132" rx="8" ry="5.5" fill="#6ab83a" transform="rotate(20 110 132)"/>
+
+        {/* Finger lines */}
+        <line x1="25" y1="130" x2="28" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
+        <line x1="31" y1="129" x2="33" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
+        <line x1="109" y1="129" x2="107" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
+        <line x1="115" y1="130" x2="113" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
       </svg>
     </div>
   );
@@ -167,13 +223,15 @@ export default function HomePage() {
                   </p>
 
                   {card.featured && (
-                    <div className="pointer-events-none absolute bottom-10 right-8 hidden md:block">
+                    <div className="pointer-events-none absolute bottom-8 right-6 hidden md:block">
                       <div className="absolute inset-0 rounded-full bg-emerald-400/10 blur-3xl" />
-                      <BabyYoda className="relative w-36 drop-shadow-[0_0_24px_rgba(16,185,129,.35)]" />
-                      {/* Stars instead of hearts */}
-                      <svg className="absolute -top-2 right-8" width="16" height="16" viewBox="0 0 24 24" fill="#a78bfa" style={{ filter: "drop-shadow(0 0 6px #a78bfa)", animation: "star-float-1 3.6s ease-in-out infinite" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
-                      <svg className="absolute top-8 -right-2" width="12" height="12" viewBox="0 0 24 24" fill="#22d3ee" style={{ filter: "drop-shadow(0 0 5px #22d3ee)", animation: "star-float-2 4.4s ease-in-out infinite 0.7s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
-                      <svg className="absolute -top-4 right-1" width="9" height="9" viewBox="0 0 24 24" fill="#fbbf24" style={{ filter: "drop-shadow(0 0 4px #fbbf24)", animation: "star-float-3 5s ease-in-out infinite 1.2s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <BabyYoda className="relative w-40 drop-shadow-[0_0_28px_rgba(16,185,129,.4)]" />
+                      {/* Floating stars */}
+                      <svg className="absolute -top-3 right-10" width="18" height="18" viewBox="0 0 24 24" fill="#a78bfa" style={{ filter: "drop-shadow(0 0 7px #a78bfa)", animation: "star-float-1 3.6s ease-in-out infinite" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute top-6 -right-3" width="13" height="13" viewBox="0 0 24 24" fill="#22d3ee" style={{ filter: "drop-shadow(0 0 5px #22d3ee)", animation: "star-float-2 4.4s ease-in-out infinite 0.7s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute -top-5 right-2" width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" style={{ filter: "drop-shadow(0 0 4px #fbbf24)", animation: "star-float-3 5s ease-in-out infinite 1.2s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute top-20 -right-4" width="15" height="15" viewBox="0 0 24 24" fill="#c084fc" style={{ filter: "drop-shadow(0 0 6px #c084fc)", animation: "star-float-1 4.8s ease-in-out infinite 1.8s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute -top-1 left-2" width="11" height="11" viewBox="0 0 24 24" fill="#67e8f9" style={{ filter: "drop-shadow(0 0 4px #67e8f9)", animation: "star-float-2 3.8s ease-in-out infinite 0.4s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
                     </div>
                   )}
 
