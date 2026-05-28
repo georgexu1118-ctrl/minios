@@ -607,7 +607,12 @@ export async function POST(req: NextRequest) {
   const hasImage = !!body.image;
 
   const requested = isFlashcards ? "gpt-oss-20b" : (body.model ?? "gpt-4o-mini");
-  const providerChain = resolveProviderChain(requested, hasImage);
+  const hasPdfAttached = !!(body.pdfText && body.pdfText.trim());
+  // For PDF queries, always use the fast general chain (Kimi K2 on Groq ~200 tok/s, 128k ctx)
+  // regardless of which model the user selected — the educational system prompt is still applied.
+  const providerChain = hasPdfAttached && !isFlashcards
+    ? GENERAL_PROVIDERS
+    : resolveProviderChain(requested, hasImage);
 
   if (!firstAvailable(providerChain)) {
     return new Response(JSON.stringify({ error: "No API key configured for this model. Check Vercel environment variables." }), {
@@ -618,7 +623,7 @@ export async function POST(req: NextRequest) {
   const sysPrompt = isFlashcards ? SYSTEM_PROMPT_FLASHCARDS
     : hasImage ? SYSTEM_PROMPT_VISION
     : requested === "nouscoder-14b" ? SYSTEM_PROMPT_CODING
-    : requested === "gpt-oss-20b" ? SYSTEM_PROMPT_EDU
+    : (requested === "gpt-oss-20b" || hasPdfAttached) ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
   // Cap history at 10 messages (5 exchanges) — keeps input tokens lean for fast TTFT.
   const hasPdfBody = !!(body.pdfText && body.pdfText.trim());
@@ -694,7 +699,7 @@ export async function POST(req: NextRequest) {
         `3. For driving exams: provide the correct answer (A/B/C/D or True/False) AND a brief explanation of the rule.\n` +
         `4. When referencing specific content, cite the page number as (p. N).\n` +
         `5. If asked to "give all answers", output a clean numbered list: Q1 → [Answer]: [Brief reason].\n\n` +
-        `=== PDF TEXT START ===\n${body.pdfText}\n=== PDF TEXT END ===`,
+        `=== PDF TEXT START ===\n${body.pdfText.slice(0, 80_000)}\n=== PDF TEXT END ===`,
     });
   }
 
@@ -764,12 +769,12 @@ export async function POST(req: NextRequest) {
         const isCoding = requested === "nouscoder-14b";
         const hasPdf = !!(body.pdfText && body.pdfText.trim());
         const useTools = !hasImage && !hasPrefetchedResearch && !isCoding;
-        // Edu+PDF: 6000 tok — covers answering a full 47-page exam with explanations.
+        // PDF: 3000 tok — fast on Kimi K2/Groq, enough for full exam answers.
         // Edu: 2000 tok — enough for 10 contest answers with brief working (~150 tok/Q).
         // Vision: 1200 tok — screenshot solving is concise by design.
         // General: 800 tok — keeps TTFT fast for conversational use.
         // Coding: 1800 tok — enough for useful snippets without bogging down streaming.
-        const maxTok = hasImage ? 1200 : (isEdu && hasPdf) ? 6000 : isEdu ? 2000 : isCoding ? 1800 : 800;
+        const maxTok = hasImage ? 1200 : hasPdf ? 3000 : isEdu ? 2000 : isCoding ? 1800 : 800;
 
         if (hasPrefetchedResearch) {
           let newsResult: Record<string, unknown> | undefined;
