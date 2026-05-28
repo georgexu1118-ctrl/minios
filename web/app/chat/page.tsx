@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -50,11 +51,13 @@ const MODELS = [
 type ModelId = typeof MODELS[number]["id"];
 
 export default function ChatPage() {
+  const searchParams = useSearchParams();
+  const initialModel = (MODELS.find(m => m.id === searchParams.get("model"))?.id ?? "gpt-4o-mini") as ModelId;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => uuidv4());
-  const [model, setModel] = useState<ModelId>("gpt-4o-mini");
+  const [model, setModel] = useState<ModelId>(initialModel);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [pdf, setPdf] = useState<PdfAttachment | null>(null);
