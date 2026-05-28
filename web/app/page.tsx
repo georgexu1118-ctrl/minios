@@ -58,130 +58,14 @@ const labs = [
 function TutorMascot({ className = "" }: { className?: string }) {
   return (
     <div className={className} style={{ animation: "yoda-float 3.6s ease-in-out infinite" }}>
-      <svg viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <radialGradient id="grHead" cx="38%" cy="32%" r="68%">
-            <stop offset="0%"  stopColor="#a8d870"/>
-            <stop offset="35%" stopColor="#7cba3a"/>
-            <stop offset="75%" stopColor="#558d20"/>
-            <stop offset="100%" stopColor="#345d10"/>
-          </radialGradient>
-          <radialGradient id="grEarOut" cx="35%" cy="30%" r="75%">
-            <stop offset="0%"  stopColor="#8cc650"/>
-            <stop offset="60%" stopColor="#5fa030"/>
-            <stop offset="100%" stopColor="#3a7015"/>
-          </radialGradient>
-          <radialGradient id="grEarIn" cx="40%" cy="40%" r="60%">
-            <stop offset="0%"  stopColor="#e8b8a8"/>
-            <stop offset="60%" stopColor="#c08070"/>
-            <stop offset="100%" stopColor="#8a5448"/>
-          </radialGradient>
-          <radialGradient id="grEye" cx="38%" cy="32%" r="65%">
-            <stop offset="0%"  stopColor="#3a2410"/>
-            <stop offset="60%" stopColor="#150900"/>
-            <stop offset="100%" stopColor="#000000"/>
-          </radialGradient>
-          <linearGradient id="grRobe" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%"  stopColor="#c9b08e"/>
-            <stop offset="50%" stopColor="#8f7657"/>
-            <stop offset="100%" stopColor="#4a3318"/>
-          </linearGradient>
-          <linearGradient id="grRobeFold" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%"  stopColor="#d8c4a0"/>
-            <stop offset="100%" stopColor="#7a5e38"/>
-          </linearGradient>
-          <radialGradient id="grCheek" cx="50%" cy="50%" r="50%">
-            <stop offset="0%"  stopColor="#a8d870" stopOpacity="0.55"/>
-            <stop offset="100%" stopColor="#a8d870" stopOpacity="0"/>
-          </radialGradient>
-          <filter id="grSoft" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
-            <feOffset dx="0" dy="2.5"/>
-            <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
-            <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        {/* Robe */}
-        <path d="M54 150 Q34 175 24 222 Q24 228 32 228 L168 228 Q176 228 176 222 Q166 175 146 150 Q100 168 54 150 Z" fill="#2e1d08"/>
-        <path d="M56 148 Q38 174 28 222 L172 222 Q162 174 144 148 Q100 165 56 148 Z" fill="url(#grRobe)"/>
-        <path d="M72 156 Q62 180 58 220 L142 220 Q138 180 128 156 Q100 168 72 156 Z" fill="url(#grRobeFold)" opacity="0.6"/>
-        <path d="M100 160 Q98 188 100 222" stroke="#3a2710" strokeWidth="1.8" fill="none" opacity="0.55"/>
-        <path d="M75 162 Q70 188 65 215" stroke="#3a2710" strokeWidth="1" fill="none" opacity="0.35"/>
-        <path d="M125 162 Q130 188 135 215" stroke="#3a2710" strokeWidth="1" fill="none" opacity="0.35"/>
-
-        {/* Collar */}
-        <ellipse cx="100" cy="148" rx="22" ry="12" fill="#3a2710"/>
-        <ellipse cx="100" cy="146" rx="18" ry="9" fill="#5a9028"/>
-        <ellipse cx="100" cy="145" rx="14" ry="7" fill="#6ab030"/>
-
-        {/* Ears */}
-        <g filter="url(#grSoft)">
-          <path d="M52 88 Q34 70 8 80 Q-6 96 4 116 Q18 130 42 122 Q56 112 56 96 Z" fill="url(#grEarOut)"/>
-          <path d="M50 92 Q36 78 14 86 Q4 100 12 114 Q22 124 42 117 Q52 109 53 98 Z" fill="url(#grEarIn)"/>
-          <path d="M44 100 Q34 96 24 102 Q22 110 30 114" stroke="#a87060" strokeWidth="1.2" fill="none" opacity="0.6"/>
-          <path d="M50 89 Q36 74 16 80" stroke="#b8e070" strokeWidth="1.2" fill="none" opacity="0.55" strokeLinecap="round"/>
-        </g>
-        <g filter="url(#grSoft)">
-          <path d="M148 88 Q166 70 192 80 Q206 96 196 116 Q182 130 158 122 Q144 112 144 96 Z" fill="url(#grEarOut)"/>
-          <path d="M150 92 Q164 78 186 86 Q196 100 188 114 Q178 124 158 117 Q148 109 147 98 Z" fill="url(#grEarIn)"/>
-          <path d="M156 100 Q166 96 176 102 Q178 110 170 114" stroke="#a87060" strokeWidth="1.2" fill="none" opacity="0.6"/>
-          <path d="M150 89 Q164 74 184 80" stroke="#b8e070" strokeWidth="1.2" fill="none" opacity="0.55" strokeLinecap="round"/>
-        </g>
-
-        {/* Head */}
-        <ellipse cx="100" cy="148" rx="58" ry="14" fill="#1a3008" opacity="0.5"/>
-        <ellipse cx="100" cy="92" rx="58" ry="56" fill="url(#grHead)"/>
-        <circle cx="62" cy="108" r="14" fill="url(#grCheek)"/>
-        <circle cx="138" cy="108" r="14" fill="url(#grCheek)"/>
-
-        {/* Wrinkles */}
-        <path d="M72 60 Q100 54 128 60" stroke="#3a6810" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.55"/>
-        <path d="M76 69 Q100 65 124 69" stroke="#3a6810" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.42"/>
-        <path d="M82 77 Q100 74 118 77" stroke="#3a6810" strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.28"/>
-        <ellipse cx="100" cy="135" rx="38" ry="10" fill="#3a6810" opacity="0.25"/>
-
-        {/* Eye sockets */}
-        <ellipse cx="72" cy="95" rx="20" ry="18" fill="#3a6810" opacity="0.3"/>
-        <ellipse cx="128" cy="95" rx="20" ry="18" fill="#3a6810" opacity="0.3"/>
-
-        {/* Eyes */}
-        <circle cx="72" cy="96" r="18" fill="#0a0500"/>
-        <circle cx="72" cy="96" r="16" fill="url(#grEye)"/>
-        <ellipse cx="79" cy="88" rx="6" ry="5" fill="white" opacity="0.95"/>
-        <circle cx="68" cy="92" r="2" fill="white" opacity="0.7"/>
-        <ellipse cx="70" cy="106" rx="6" ry="2" fill="white" opacity="0.18"/>
-
-        <circle cx="128" cy="96" r="18" fill="#0a0500"/>
-        <circle cx="128" cy="96" r="16" fill="url(#grEye)"/>
-        <ellipse cx="135" cy="88" rx="6" ry="5" fill="white" opacity="0.95"/>
-        <circle cx="124" cy="92" r="2" fill="white" opacity="0.7"/>
-        <ellipse cx="126" cy="106" rx="6" ry="2" fill="white" opacity="0.18"/>
-
-        {/* Nose */}
-        <ellipse cx="100" cy="115" rx="7" ry="4.5" fill="#3a6810" opacity="0.7"/>
-        <ellipse cx="100" cy="114" rx="6" ry="3.8" fill="#4a8020" opacity="0.55"/>
-        <circle cx="96" cy="114" r="1.6" fill="#1f3a05" opacity="0.7"/>
-        <circle cx="104" cy="114" r="1.6" fill="#1f3a05" opacity="0.7"/>
-
-        {/* Mouth */}
-        <path d="M84 128 Q100 140 116 128" stroke="#5a3225" strokeWidth="3.2" fill="none" strokeLinecap="round" opacity="0.85"/>
-        <path d="M86 127 Q100 138 114 127" stroke="#7a4830" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.5"/>
-
-        {/* Arms */}
-        <ellipse cx="46" cy="190" rx="14" ry="9" fill="url(#grHead)" transform="rotate(-15 46 190)"/>
-        <ellipse cx="44" cy="192" rx="10" ry="6.5" fill="#6ab83a" transform="rotate(-15 44 192)"/>
-        <line x1="36" y1="190" x2="40" y2="198" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
-        <line x1="42" y1="187" x2="45" y2="196" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
-        <line x1="49" y1="186" x2="51" y2="196" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
-
-        {/* Right arm raised — waving */}
-        <ellipse cx="160" cy="170" rx="14" ry="9" fill="url(#grHead)" transform="rotate(35 160 170)"/>
-        <ellipse cx="162" cy="168" rx="10" ry="6.5" fill="#6ab83a" transform="rotate(35 162 168)"/>
-        <line x1="156" y1="160" x2="160" y2="168" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
-        <line x1="162" y1="158" x2="165" y2="167" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
-        <line x1="168" y1="160" x2="170" y2="169" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
-      </svg>
+      <Image
+        src="/baby-yoda.png"
+        alt="Grogu"
+        width={180}
+        height={200}
+        className="w-full h-auto object-contain drop-shadow-[0_0_32px_rgba(16,185,129,0.35)]"
+        priority
+      />
     </div>
   );
 }
