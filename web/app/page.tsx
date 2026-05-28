@@ -60,8 +60,8 @@ function TutorMascot({ className = "" }: { className?: string }) {
     <div
       className={className}
       style={{
-        maskImage: "radial-gradient(ellipse 80% 85% at 62% 60%, black 30%, transparent 68%)",
-        WebkitMaskImage: "radial-gradient(ellipse 80% 85% at 62% 60%, black 30%, transparent 68%)",
+        maskImage: "radial-gradient(ellipse 80% 75% at 62% 72%, black 30%, transparent 68%)",
+        WebkitMaskImage: "radial-gradient(ellipse 80% 75% at 62% 72%, black 30%, transparent 68%)",
       }}
     >
       <Image
