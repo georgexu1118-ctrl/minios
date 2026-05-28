@@ -35,6 +35,7 @@ const labs = [
     href: "/chat",
     tone: "blue",
     badge: "Kimi K2",
+    mobileOrder: "order-1",
   },
   {
     title: "Coding Models",
@@ -43,6 +44,7 @@ const labs = [
     href: "/chat",
     tone: "emerald",
     badge: "NousCoder-14B",
+    mobileOrder: "order-2",
   },
   {
     title: "Educational Models",
@@ -52,6 +54,7 @@ const labs = [
     tone: "violet",
     badge: "GPT-OSS 20B",
     featured: true,
+    mobileOrder: "order-3",
   },
 ];
 
@@ -139,7 +142,7 @@ export default function HomePage() {
                 key={card.title}
                 className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-[#0c0e10]/80 p-5 shadow-2xl shadow-black/30 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/20 ${
                   card.featured ? "lg:col-span-6" : "lg:col-span-3"
-                }`}
+                } ${card.mobileOrder} lg:order-none`}
               >
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.08),transparent_28%)] opacity-0 transition group-hover:opacity-100" />
                 <div className="relative z-10 flex h-full min-h-[250px] flex-col">
