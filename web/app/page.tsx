@@ -57,13 +57,13 @@ const labs = [
 
 function TutorMascot({ className = "" }: { className?: string }) {
   return (
-    <div className={className} style={{ animation: "yoda-float 3.6s ease-in-out infinite" }}>
+    <div className={className}>
       <Image
         src="/baby-yoda.png"
         alt="Grogu"
         width={180}
         height={200}
-        className="w-full h-auto object-contain drop-shadow-[0_0_32px_rgba(16,185,129,0.35)]"
+        className="w-full h-auto object-contain"
         priority
       />
     </div>
