@@ -412,9 +412,17 @@ const VISION_PROVIDERS: ProviderConfig[] = [
   { apiKeyEnv: "TOGETHER_API_KEY", baseURL: "https://api.together.xyz/v1", modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", mode: "vision" },
 ];
 
-function resolveProviderChain(requested: string, hasImage: boolean): ProviderConfig[] {
+// When educational model is selected with a PDF, prepend fast Kimi K2 / Llama providers
+// so the large context gets processed quickly, then fall back to GPT-OSS 20B as normal.
+const EDU_PDF_PROVIDERS: ProviderConfig[] = [
+  { apiKeyEnv: "GROQ_API_KEY",     baseURL: "https://api.groq.com/openai/v1", modelId: "moonshotai/kimi-k2-instruct-0905",          mode: "educational" },
+  { apiKeyEnv: "GROQ_API_KEY",     baseURL: "https://api.groq.com/openai/v1", modelId: "llama-3.3-70b-versatile",                   mode: "educational" },
+  ...EDU_PROVIDERS,
+];
+
+function resolveProviderChain(requested: string, hasImage: boolean, hasPdf = false): ProviderConfig[] {
   if (hasImage && requested !== "gpt-4o-mini") return VISION_PROVIDERS;
-  if (requested === "gpt-oss-20b") return EDU_PROVIDERS;
+  if (requested === "gpt-oss-20b") return hasPdf ? EDU_PDF_PROVIDERS : EDU_PROVIDERS;
   if (requested === "nouscoder-14b") return CODING_PROVIDERS;
   return GENERAL_PROVIDERS;
 }
@@ -608,11 +616,7 @@ export async function POST(req: NextRequest) {
 
   const requested = isFlashcards ? "gpt-oss-20b" : (body.model ?? "gpt-4o-mini");
   const hasPdfAttached = !!(body.pdfText && body.pdfText.trim());
-  // For PDF queries, always use the fast general chain (Kimi K2 on Groq ~200 tok/s, 128k ctx)
-  // regardless of which model the user selected — the educational system prompt is still applied.
-  const providerChain = hasPdfAttached && !isFlashcards
-    ? GENERAL_PROVIDERS
-    : resolveProviderChain(requested, hasImage);
+  const providerChain = resolveProviderChain(requested, hasImage, hasPdfAttached);
 
   if (!firstAvailable(providerChain)) {
     return new Response(JSON.stringify({ error: "No API key configured for this model. Check Vercel environment variables." }), {
