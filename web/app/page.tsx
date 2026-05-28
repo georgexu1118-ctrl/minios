@@ -57,56 +57,130 @@ const labs = [
 
 function TutorMascot({ className = "" }: { className?: string }) {
   return (
-    <div className={className}>
-      <svg viewBox="0 0 170 145" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <div className={className} style={{ animation: "yoda-float 3.6s ease-in-out infinite" }}>
+      <svg viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
-          <radialGradient id="mascotGlow" cx="50%" cy="44%" r="62%">
-            <stop offset="0%" stopColor="#d8ffd2" stopOpacity="0.95" />
-            <stop offset="48%" stopColor="#7fcf68" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#2d6b2e" stopOpacity="0.95" />
+          <radialGradient id="grHead" cx="38%" cy="32%" r="68%">
+            <stop offset="0%"  stopColor="#a8d870"/>
+            <stop offset="35%" stopColor="#7cba3a"/>
+            <stop offset="75%" stopColor="#558d20"/>
+            <stop offset="100%" stopColor="#345d10"/>
           </radialGradient>
-          <linearGradient id="robeFront" x1="31" x2="128" y1="82" y2="140" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#c9b08e" />
-            <stop offset="0.55" stopColor="#8f7657" />
-            <stop offset="1" stopColor="#5b4935" />
-          </linearGradient>
-          <linearGradient id="robeShadow" x1="51" x2="111" y1="93" y2="144" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#8a6c45" />
-            <stop offset="1" stopColor="#3f2d1e" />
-          </linearGradient>
-          <radialGradient id="eyeShine" cx="35%" cy="28%" r="70%">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="34%" stopColor="#ffffff" stopOpacity="0.7" />
-            <stop offset="36%" stopColor="#17110d" />
-            <stop offset="100%" stopColor="#050302" />
+          <radialGradient id="grEarOut" cx="35%" cy="30%" r="75%">
+            <stop offset="0%"  stopColor="#8cc650"/>
+            <stop offset="60%" stopColor="#5fa030"/>
+            <stop offset="100%" stopColor="#3a7015"/>
           </radialGradient>
+          <radialGradient id="grEarIn" cx="40%" cy="40%" r="60%">
+            <stop offset="0%"  stopColor="#e8b8a8"/>
+            <stop offset="60%" stopColor="#c08070"/>
+            <stop offset="100%" stopColor="#8a5448"/>
+          </radialGradient>
+          <radialGradient id="grEye" cx="38%" cy="32%" r="65%">
+            <stop offset="0%"  stopColor="#3a2410"/>
+            <stop offset="60%" stopColor="#150900"/>
+            <stop offset="100%" stopColor="#000000"/>
+          </radialGradient>
+          <linearGradient id="grRobe" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%"  stopColor="#c9b08e"/>
+            <stop offset="50%" stopColor="#8f7657"/>
+            <stop offset="100%" stopColor="#4a3318"/>
+          </linearGradient>
+          <linearGradient id="grRobeFold" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%"  stopColor="#d8c4a0"/>
+            <stop offset="100%" stopColor="#7a5e38"/>
+          </linearGradient>
+          <radialGradient id="grCheek" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stopColor="#a8d870" stopOpacity="0.55"/>
+            <stop offset="100%" stopColor="#a8d870" stopOpacity="0"/>
+          </radialGradient>
+          <filter id="grSoft" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
+            <feOffset dx="0" dy="2.5"/>
+            <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
+            <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
         </defs>
 
-        <ellipse cx="86" cy="92" rx="78" ry="47" fill="#34d399" opacity="0.13" />
-        <path d="M40 88 C55 78 113 78 130 88 L142 142 H27 Z" fill="url(#robeFront)" />
-        <path d="M67 91 C74 96 91 96 101 91 L111 142 H55 Z" fill="url(#robeShadow)" opacity="0.72" />
-        <path d="M38 95 C53 86 116 86 131 95 L126 110 C100 101 68 101 43 110 Z" fill="#d6c1a4" />
+        {/* Robe */}
+        <path d="M54 150 Q34 175 24 222 Q24 228 32 228 L168 228 Q176 228 176 222 Q166 175 146 150 Q100 168 54 150 Z" fill="#2e1d08"/>
+        <path d="M56 148 Q38 174 28 222 L172 222 Q162 174 144 148 Q100 165 56 148 Z" fill="url(#grRobe)"/>
+        <path d="M72 156 Q62 180 58 220 L142 220 Q138 180 128 156 Q100 168 72 156 Z" fill="url(#grRobeFold)" opacity="0.6"/>
+        <path d="M100 160 Q98 188 100 222" stroke="#3a2710" strokeWidth="1.8" fill="none" opacity="0.55"/>
+        <path d="M75 162 Q70 188 65 215" stroke="#3a2710" strokeWidth="1" fill="none" opacity="0.35"/>
+        <path d="M125 162 Q130 188 135 215" stroke="#3a2710" strokeWidth="1" fill="none" opacity="0.35"/>
 
-        <path d="M42 74 C26 64 15 45 23 35 C33 24 64 38 75 53 Z" fill="#79c466" />
-        <path d="M128 74 C144 64 155 45 147 35 C137 24 106 38 95 53 Z" fill="#79c466" />
-        <path d="M32 43 C41 37 58 42 68 53 C55 54 40 58 29 65 C24 57 25 48 32 43 Z" fill="#cf927f" opacity="0.82" />
-        <path d="M138 43 C129 37 112 42 102 53 C115 54 130 58 141 65 C146 57 145 48 138 43 Z" fill="#cf927f" opacity="0.82" />
+        {/* Collar */}
+        <ellipse cx="100" cy="148" rx="22" ry="12" fill="#3a2710"/>
+        <ellipse cx="100" cy="146" rx="18" ry="9" fill="#5a9028"/>
+        <ellipse cx="100" cy="145" rx="14" ry="7" fill="#6ab030"/>
 
-        <ellipse cx="85" cy="56" rx="42" ry="36" fill="url(#mascotGlow)" />
-        <path d="M62 37 C72 32 97 32 108 37" stroke="#4f9b3f" strokeWidth="2.5" strokeLinecap="round" opacity="0.55" />
-        <path d="M67 45 C77 41 94 41 103 45" stroke="#4f9b3f" strokeWidth="2" strokeLinecap="round" opacity="0.42" />
+        {/* Ears */}
+        <g filter="url(#grSoft)">
+          <path d="M52 88 Q34 70 8 80 Q-6 96 4 116 Q18 130 42 122 Q56 112 56 96 Z" fill="url(#grEarOut)"/>
+          <path d="M50 92 Q36 78 14 86 Q4 100 12 114 Q22 124 42 117 Q52 109 53 98 Z" fill="url(#grEarIn)"/>
+          <path d="M44 100 Q34 96 24 102 Q22 110 30 114" stroke="#a87060" strokeWidth="1.2" fill="none" opacity="0.6"/>
+          <path d="M50 89 Q36 74 16 80" stroke="#b8e070" strokeWidth="1.2" fill="none" opacity="0.55" strokeLinecap="round"/>
+        </g>
+        <g filter="url(#grSoft)">
+          <path d="M148 88 Q166 70 192 80 Q206 96 196 116 Q182 130 158 122 Q144 112 144 96 Z" fill="url(#grEarOut)"/>
+          <path d="M150 92 Q164 78 186 86 Q196 100 188 114 Q178 124 158 117 Q148 109 147 98 Z" fill="url(#grEarIn)"/>
+          <path d="M156 100 Q166 96 176 102 Q178 110 170 114" stroke="#a87060" strokeWidth="1.2" fill="none" opacity="0.6"/>
+          <path d="M150 89 Q164 74 184 80" stroke="#b8e070" strokeWidth="1.2" fill="none" opacity="0.55" strokeLinecap="round"/>
+        </g>
 
-        <ellipse cx="67" cy="61" rx="13.5" ry="15" fill="url(#eyeShine)" />
-        <ellipse cx="103" cy="61" rx="13.5" ry="15" fill="url(#eyeShine)" />
-        <circle cx="71" cy="54" r="4.5" fill="#fff" opacity="0.92" />
-        <circle cx="107" cy="54" r="4.5" fill="#fff" opacity="0.92" />
-        <ellipse cx="85" cy="74" rx="6" ry="4" fill="#3b7d28" opacity="0.85" />
-        <path d="M72 84 C80 91 92 91 100 84" stroke="#2f6822" strokeWidth="3" strokeLinecap="round" fill="none" />
+        {/* Head */}
+        <ellipse cx="100" cy="148" rx="58" ry="14" fill="#1a3008" opacity="0.5"/>
+        <ellipse cx="100" cy="92" rx="58" ry="56" fill="url(#grHead)"/>
+        <circle cx="62" cy="108" r="14" fill="url(#grCheek)"/>
+        <circle cx="138" cy="108" r="14" fill="url(#grCheek)"/>
 
-        <path d="M34 98 C19 91 15 78 22 71 C31 62 43 75 47 91 Z" fill="#82c85e" />
-        <circle cx="25" cy="72" r="5" fill="#a3df72" />
-        <path d="M129 95 C142 92 151 101 147 111 C143 122 126 116 121 102 Z" fill="#82c85e" />
-        <path d="M129 95 C136 96 142 102 144 109" stroke="#4b8f37" strokeWidth="2" strokeLinecap="round" />
+        {/* Wrinkles */}
+        <path d="M72 60 Q100 54 128 60" stroke="#3a6810" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.55"/>
+        <path d="M76 69 Q100 65 124 69" stroke="#3a6810" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.42"/>
+        <path d="M82 77 Q100 74 118 77" stroke="#3a6810" strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.28"/>
+        <ellipse cx="100" cy="135" rx="38" ry="10" fill="#3a6810" opacity="0.25"/>
+
+        {/* Eye sockets */}
+        <ellipse cx="72" cy="95" rx="20" ry="18" fill="#3a6810" opacity="0.3"/>
+        <ellipse cx="128" cy="95" rx="20" ry="18" fill="#3a6810" opacity="0.3"/>
+
+        {/* Eyes */}
+        <circle cx="72" cy="96" r="18" fill="#0a0500"/>
+        <circle cx="72" cy="96" r="16" fill="url(#grEye)"/>
+        <ellipse cx="79" cy="88" rx="6" ry="5" fill="white" opacity="0.95"/>
+        <circle cx="68" cy="92" r="2" fill="white" opacity="0.7"/>
+        <ellipse cx="70" cy="106" rx="6" ry="2" fill="white" opacity="0.18"/>
+
+        <circle cx="128" cy="96" r="18" fill="#0a0500"/>
+        <circle cx="128" cy="96" r="16" fill="url(#grEye)"/>
+        <ellipse cx="135" cy="88" rx="6" ry="5" fill="white" opacity="0.95"/>
+        <circle cx="124" cy="92" r="2" fill="white" opacity="0.7"/>
+        <ellipse cx="126" cy="106" rx="6" ry="2" fill="white" opacity="0.18"/>
+
+        {/* Nose */}
+        <ellipse cx="100" cy="115" rx="7" ry="4.5" fill="#3a6810" opacity="0.7"/>
+        <ellipse cx="100" cy="114" rx="6" ry="3.8" fill="#4a8020" opacity="0.55"/>
+        <circle cx="96" cy="114" r="1.6" fill="#1f3a05" opacity="0.7"/>
+        <circle cx="104" cy="114" r="1.6" fill="#1f3a05" opacity="0.7"/>
+
+        {/* Mouth */}
+        <path d="M84 128 Q100 140 116 128" stroke="#5a3225" strokeWidth="3.2" fill="none" strokeLinecap="round" opacity="0.85"/>
+        <path d="M86 127 Q100 138 114 127" stroke="#7a4830" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.5"/>
+
+        {/* Arms */}
+        <ellipse cx="46" cy="190" rx="14" ry="9" fill="url(#grHead)" transform="rotate(-15 46 190)"/>
+        <ellipse cx="44" cy="192" rx="10" ry="6.5" fill="#6ab83a" transform="rotate(-15 44 192)"/>
+        <line x1="36" y1="190" x2="40" y2="198" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
+        <line x1="42" y1="187" x2="45" y2="196" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
+        <line x1="49" y1="186" x2="51" y2="196" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
+
+        {/* Right arm raised — waving */}
+        <ellipse cx="160" cy="170" rx="14" ry="9" fill="url(#grHead)" transform="rotate(35 160 170)"/>
+        <ellipse cx="162" cy="168" rx="10" ry="6.5" fill="#6ab83a" transform="rotate(35 162 168)"/>
+        <line x1="156" y1="160" x2="160" y2="168" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
+        <line x1="162" y1="158" x2="165" y2="167" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
+        <line x1="168" y1="160" x2="170" y2="169" stroke="#3a6810" strokeWidth="1.1" opacity="0.55"/>
       </svg>
     </div>
   );
@@ -228,9 +302,6 @@ export default function HomePage() {
                   className="h-[240px] w-full object-cover object-top opacity-90 md:h-[280px]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0c0e10] via-[#0c0e10]/20 to-transparent" />
-                <div className="absolute left-6 top-6 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-cyan-200">
-                  AAOI live context
-                </div>
               </div>
             </article>
 
