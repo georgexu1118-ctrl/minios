@@ -8,7 +8,6 @@ import Image from "next/image";
 const NAV = [
   { href: "/", label: "Research" },
   { href: "/chat", label: "Chat" },
-  { href: "https://github.com/georgexu1118-ctrl/aaos", label: "GitHub", external: true },
 ];
 
 export default function Navbar() {
@@ -73,11 +72,6 @@ export default function Navbar() {
               </Tag>
             );
           })}
-          <Link href="/chat"
-            className="ml-3 px-4 py-1.5 rounded-lg text-[13px] font-medium tracking-wide
-              btn-shimmer text-white border-0 cursor-pointer">
-            Launch AI →
-          </Link>
         </div>
 
         {/* Mobile hamburger */}
@@ -101,10 +95,6 @@ export default function Navbar() {
               </Tag>
             );
           })}
-          <Link href="/chat" onClick={() => setOpen(false)}
-            className="mt-1 px-3 py-2 rounded-lg text-sm font-medium text-white btn-shimmer text-center">
-            Launch AI →
-          </Link>
         </div>
       )}
     </nav>
