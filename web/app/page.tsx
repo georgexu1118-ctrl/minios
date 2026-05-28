@@ -170,8 +170,10 @@ export default function HomePage() {
                     <div className="pointer-events-none absolute bottom-10 right-8 hidden md:block">
                       <div className="absolute inset-0 rounded-full bg-emerald-400/10 blur-3xl" />
                       <BabyYoda className="relative w-36 drop-shadow-[0_0_24px_rgba(16,185,129,.35)]" />
-                      <span className="absolute right-8 top-0 text-lg text-pink-300 drop-shadow-[0_0_10px_rgba(249,168,212,.9)]">♥</span>
-                      <span className="absolute right-0 top-9 text-sm text-pink-300 drop-shadow-[0_0_10px_rgba(249,168,212,.9)]">♥</span>
+                      {/* Stars instead of hearts */}
+                      <svg className="absolute -top-2 right-8" width="16" height="16" viewBox="0 0 24 24" fill="#a78bfa" style={{ filter: "drop-shadow(0 0 6px #a78bfa)", animation: "star-float-1 3.6s ease-in-out infinite" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute top-8 -right-2" width="12" height="12" viewBox="0 0 24 24" fill="#22d3ee" style={{ filter: "drop-shadow(0 0 5px #22d3ee)", animation: "star-float-2 4.4s ease-in-out infinite 0.7s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute -top-4 right-1" width="9" height="9" viewBox="0 0 24 24" fill="#fbbf24" style={{ filter: "drop-shadow(0 0 4px #fbbf24)", animation: "star-float-3 5s ease-in-out infinite 1.2s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
                     </div>
                   )}
 

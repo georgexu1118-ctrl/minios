@@ -272,52 +272,6 @@ export default function ChatPage() {
                     )}
                   </div>
 
-                  {/* Baby Yoda — educational card only */}
-                  {isEdu && (
-                    <div className="absolute bottom-0 right-1 w-[62px] pointer-events-none select-none"
-                      style={{ animation: "yoda-float 3.2s ease-in-out infinite" }}>
-                      <svg viewBox="0 0 100 138" xmlns="http://www.w3.org/2000/svg">
-                        {/* Robe */}
-                        <path d="M26 95 Q50 110 74 95 L80 132 Q50 142 20 132 Z" fill="#7a5c2a"/>
-                        <path d="M33 100 Q50 112 67 100 L70 128 Q50 136 30 128 Z" fill="#8f6d35"/>
-                        {/* Neck */}
-                        <rect x="43" y="88" width="14" height="11" rx="4" fill="#5fa832"/>
-                        {/* Left ear */}
-                        <ellipse cx="13" cy="54" rx="13" ry="7.5" fill="#5fa832" transform="rotate(-28 13 54)"/>
-                        <ellipse cx="13" cy="54" rx="9" ry="5" fill="#c4907a" transform="rotate(-28 13 54)"/>
-                        {/* Right ear */}
-                        <ellipse cx="87" cy="54" rx="13" ry="7.5" fill="#5fa832" transform="rotate(28 87 54)"/>
-                        <ellipse cx="87" cy="54" rx="9" ry="5" fill="#c4907a" transform="rotate(28 87 54)"/>
-                        {/* Head */}
-                        <ellipse cx="50" cy="58" rx="29" ry="27" fill="#6ab83a"/>
-                        {/* Forehead wrinkles */}
-                        <path d="M36 44 Q50 40 64 44" stroke="#4a8020" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.6"/>
-                        <path d="M40 49 Q50 46 60 49" stroke="#4a8020" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.4"/>
-                        {/* Eyes */}
-                        <circle cx="39" cy="58" r="7.5" fill="#120800"/>
-                        <circle cx="61" cy="58" r="7.5" fill="#120800"/>
-                        {/* Eye shine */}
-                        <circle cx="42" cy="54.5" r="2.5" fill="white" opacity="0.9"/>
-                        <circle cx="64" cy="54.5" r="2.5" fill="white" opacity="0.9"/>
-                        <circle cx="40" cy="60" r="1" fill="white" opacity="0.4"/>
-                        <circle cx="62" cy="60" r="1" fill="white" opacity="0.4"/>
-                        {/* Nose */}
-                        <ellipse cx="50" cy="68" rx="4" ry="3" fill="#4a8020"/>
-                        <circle cx="48" cy="67" r="1" fill="#3a6015" opacity="0.5"/>
-                        <circle cx="52" cy="67" r="1" fill="#3a6015" opacity="0.5"/>
-                        {/* Smile */}
-                        <path d="M41 76 Q50 83 59 76" stroke="#3a6015" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-                        {/* Little hands reaching out cutely */}
-                        <ellipse cx="24" cy="118" rx="8" ry="5" fill="#6ab83a" transform="rotate(-25 24 118)"/>
-                        <ellipse cx="76" cy="118" rx="8" ry="5" fill="#6ab83a" transform="rotate(25 76 118)"/>
-                        {/* Finger lines */}
-                        <line x1="20" y1="116" x2="23" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
-                        <line x1="25" y1="115" x2="27" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
-                        <line x1="73" y1="115" x2="75" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
-                        <line x1="78" y1="116" x2="77" y2="121" stroke="#4a8020" strokeWidth="0.8" opacity="0.5"/>
-                      </svg>
-                    </div>
-                  )}
                 </button>
               );
             })}
