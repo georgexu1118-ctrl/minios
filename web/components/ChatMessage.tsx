@@ -89,8 +89,9 @@ export function normalizeMath(text: string): string {
   }).join("");
 }
 
-export default function ChatMessage({ msg }: { msg: Message }) {
+export default function ChatMessage({ msg, model }: { msg: Message; model?: string }) {
   const isUser = msg.role === "user";
+  const isNousCoder = model === "nouscoder-14b";
 
   return (
     <div className={`msg-enter flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} mb-4`}>
@@ -129,6 +130,7 @@ export default function ChatMessage({ msg }: { msg: Message }) {
             ? "rounded-tr-sm border-violet-600/30 text-violet-100 whitespace-pre-wrap"
             : "rounded-tl-sm border-indigo-500/20 text-indigo-100"
           }
+          ${!isUser && isNousCoder ? "code-green" : ""}
           ${!msg.content && msg.imageUrl ? "hidden" : ""}`}>
           {isUser ? (
             <>

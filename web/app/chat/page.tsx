@@ -299,7 +299,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            messages.map(msg => <ChatMessage key={msg.id} msg={msg} />)
+            messages.map(msg => <ChatMessage key={msg.id} msg={msg} model={model} />)
           )}
           <div ref={bottomRef} />
         </div>
