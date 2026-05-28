@@ -55,92 +55,58 @@ const labs = [
   },
 ];
 
-function BabyYoda({ className = "" }: { className?: string }) {
+function TutorMascot({ className = "" }: { className?: string }) {
   return (
-    <div className={className} style={{ animation: "yoda-float 3.4s ease-in-out infinite" }}>
-      <svg viewBox="0 0 140 168" xmlns="http://www.w3.org/2000/svg">
+    <div className={className}>
+      <svg viewBox="0 0 170 145" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
-          <radialGradient id="headGrad" cx="42%" cy="38%" r="60%">
-            <stop offset="0%" stopColor="#80d040"/>
-            <stop offset="100%" stopColor="#4a9018"/>
+          <radialGradient id="mascotGlow" cx="50%" cy="44%" r="62%">
+            <stop offset="0%" stopColor="#d8ffd2" stopOpacity="0.95" />
+            <stop offset="48%" stopColor="#7fcf68" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#2d6b2e" stopOpacity="0.95" />
           </radialGradient>
-          <radialGradient id="eyeGrad" cx="38%" cy="35%" r="55%">
-            <stop offset="0%" stopColor="#2a1400"/>
-            <stop offset="100%" stopColor="#0a0500"/>
-          </radialGradient>
-          <radialGradient id="robeGrad" cx="50%" cy="20%" r="70%">
-            <stop offset="0%" stopColor="#8a6535"/>
-            <stop offset="100%" stopColor="#5a3f1a"/>
+          <linearGradient id="robeFront" x1="31" x2="128" y1="82" y2="140" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#c9b08e" />
+            <stop offset="0.55" stopColor="#8f7657" />
+            <stop offset="1" stopColor="#5b4935" />
+          </linearGradient>
+          <linearGradient id="robeShadow" x1="51" x2="111" y1="93" y2="144" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#8a6c45" />
+            <stop offset="1" stopColor="#3f2d1e" />
+          </linearGradient>
+          <radialGradient id="eyeShine" cx="35%" cy="28%" r="70%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="34%" stopColor="#ffffff" stopOpacity="0.7" />
+            <stop offset="36%" stopColor="#17110d" />
+            <stop offset="100%" stopColor="#050302" />
           </radialGradient>
         </defs>
 
-        {/* Robe shadow / depth */}
-        <path d="M38 108 Q18 140 14 165 L126 165 Q122 140 102 108 Q70 124 38 108 Z" fill="#3e2a0e"/>
-        {/* Robe main */}
-        <path d="M40 107 Q22 138 18 163 L122 163 Q118 138 100 107 Q70 122 40 107 Z" fill="url(#robeGrad)"/>
-        {/* Robe inner fold highlight */}
-        <path d="M52 112 Q46 138 44 163 L96 163 Q94 138 88 112 Q70 121 52 112 Z" fill="#7a5a2a" opacity="0.55"/>
-        {/* Robe center crease */}
-        <path d="M70 115 Q68 138 70 163" stroke="#4a3015" strokeWidth="1.2" fill="none" opacity="0.5"/>
+        <ellipse cx="86" cy="92" rx="78" ry="47" fill="#34d399" opacity="0.13" />
+        <path d="M40 88 C55 78 113 78 130 88 L142 142 H27 Z" fill="url(#robeFront)" />
+        <path d="M67 91 C74 96 91 96 101 91 L111 142 H55 Z" fill="url(#robeShadow)" opacity="0.72" />
+        <path d="M38 95 C53 86 116 86 131 95 L126 110 C100 101 68 101 43 110 Z" fill="#d6c1a4" />
 
-        {/* Collar */}
-        <ellipse cx="70" cy="107" rx="14" ry="8" fill="#5a9e28"/>
-        <ellipse cx="70" cy="106" rx="11" ry="6" fill="#6ab030"/>
+        <path d="M42 74 C26 64 15 45 23 35 C33 24 64 38 75 53 Z" fill="#79c466" />
+        <path d="M128 74 C144 64 155 45 147 35 C137 24 106 38 95 53 Z" fill="#79c466" />
+        <path d="M32 43 C41 37 58 42 68 53 C55 54 40 58 29 65 C24 57 25 48 32 43 Z" fill="#cf927f" opacity="0.82" />
+        <path d="M138 43 C129 37 112 42 102 53 C115 54 130 58 141 65 C146 57 145 48 138 43 Z" fill="#cf927f" opacity="0.82" />
 
-        {/* LEFT EAR — wide, drooping leaf shape */}
-        <path d="M36 62 Q22 50 4 62 Q-4 76 8 86 Q18 92 32 84 Q40 76 38 66 Z" fill="#5fa832"/>
-        <path d="M34 64 Q23 54 7 64 Q1 75 11 83 Q19 88 31 81 Q38 74 36 67 Z" fill="#b87060"/>
-        {/* Ear vein line */}
-        <path d="M34 66 Q20 68 10 75" stroke="#4a7020" strokeWidth="0.8" fill="none" opacity="0.4"/>
+        <ellipse cx="85" cy="56" rx="42" ry="36" fill="url(#mascotGlow)" />
+        <path d="M62 37 C72 32 97 32 108 37" stroke="#4f9b3f" strokeWidth="2.5" strokeLinecap="round" opacity="0.55" />
+        <path d="M67 45 C77 41 94 41 103 45" stroke="#4f9b3f" strokeWidth="2" strokeLinecap="round" opacity="0.42" />
 
-        {/* RIGHT EAR — mirror */}
-        <path d="M104 62 Q118 50 136 62 Q144 76 132 86 Q122 92 108 84 Q100 76 102 66 Z" fill="#5fa832"/>
-        <path d="M106 64 Q117 54 133 64 Q139 75 129 83 Q121 88 109 81 Q102 74 104 67 Z" fill="#b87060"/>
-        <path d="M106 66 Q120 68 130 75" stroke="#4a7020" strokeWidth="0.8" fill="none" opacity="0.4"/>
+        <ellipse cx="67" cy="61" rx="13.5" ry="15" fill="url(#eyeShine)" />
+        <ellipse cx="103" cy="61" rx="13.5" ry="15" fill="url(#eyeShine)" />
+        <circle cx="71" cy="54" r="4.5" fill="#fff" opacity="0.92" />
+        <circle cx="107" cy="54" r="4.5" fill="#fff" opacity="0.92" />
+        <ellipse cx="85" cy="74" rx="6" ry="4" fill="#3b7d28" opacity="0.85" />
+        <path d="M72 84 C80 91 92 91 100 84" stroke="#2f6822" strokeWidth="3" strokeLinecap="round" fill="none" />
 
-        {/* Head */}
-        <ellipse cx="70" cy="68" rx="38" ry="36" fill="url(#headGrad)"/>
-        {/* Cheek blush */}
-        <ellipse cx="46" cy="78" rx="10" ry="6" fill="#5aaa22" opacity="0.3"/>
-        <ellipse cx="94" cy="78" rx="10" ry="6" fill="#5aaa22" opacity="0.3"/>
-
-        {/* Forehead wrinkles */}
-        <path d="M53 48 Q70 44 87 48" stroke="#3a7010" strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.55"/>
-        <path d="M57 55 Q70 52 83 55" stroke="#3a7010" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.38"/>
-
-        {/* LEFT EYE */}
-        <circle cx="51" cy="69" r="13" fill="#0e0700"/>
-        <circle cx="51" cy="69" r="11" fill="url(#eyeGrad)"/>
-        {/* Eye shine main */}
-        <circle cx="56" cy="63" r="4.5" fill="white" opacity="0.92"/>
-        {/* Eye shine secondary */}
-        <circle cx="48" cy="74" r="2" fill="white" opacity="0.3"/>
-
-        {/* RIGHT EYE */}
-        <circle cx="89" cy="69" r="13" fill="#0e0700"/>
-        <circle cx="89" cy="69" r="11" fill="url(#eyeGrad)"/>
-        <circle cx="94" cy="63" r="4.5" fill="white" opacity="0.92"/>
-        <circle cx="86" cy="74" r="2" fill="white" opacity="0.3"/>
-
-        {/* Nose — tiny, upturned */}
-        <ellipse cx="70" cy="82" rx="5.5" ry="3.5" fill="#3e7a10" opacity="0.75"/>
-        <circle cx="67" cy="81" r="1.6" fill="#2e5c0a" opacity="0.55"/>
-        <circle cx="73" cy="81" r="1.6" fill="#2e5c0a" opacity="0.55"/>
-
-        {/* Mouth — gentle happy curve */}
-        <path d="M58 92 Q70 101 82 92" stroke="#2e5c0a" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
-
-        {/* Tiny arms / hands peeking from robe */}
-        <path d="M32 130 Q22 124 24 114 Q30 106 38 115 L35 130 Z" fill="#5fa832"/>
-        <ellipse cx="30" cy="132" rx="8" ry="5.5" fill="#6ab83a" transform="rotate(-20 30 132)"/>
-        <path d="M108 130 Q118 124 116 114 Q110 106 102 115 L105 130 Z" fill="#5fa832"/>
-        <ellipse cx="110" cy="132" rx="8" ry="5.5" fill="#6ab83a" transform="rotate(20 110 132)"/>
-
-        {/* Finger lines */}
-        <line x1="25" y1="130" x2="28" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
-        <line x1="31" y1="129" x2="33" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
-        <line x1="109" y1="129" x2="107" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
-        <line x1="115" y1="130" x2="113" y2="136" stroke="#3a7010" strokeWidth="0.9" opacity="0.5"/>
+        <path d="M34 98 C19 91 15 78 22 71 C31 62 43 75 47 91 Z" fill="#82c85e" />
+        <circle cx="25" cy="72" r="5" fill="#a3df72" />
+        <path d="M129 95 C142 92 151 101 147 111 C143 122 126 116 121 102 Z" fill="#82c85e" />
+        <path d="M129 95 C136 96 142 102 144 109" stroke="#4b8f37" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -225,13 +191,10 @@ export default function HomePage() {
                   {card.featured && (
                     <div className="pointer-events-none absolute bottom-8 right-6 hidden md:block">
                       <div className="absolute inset-0 rounded-full bg-emerald-400/10 blur-3xl" />
-                      <BabyYoda className="relative w-40 drop-shadow-[0_0_28px_rgba(16,185,129,.4)]" />
-                      {/* Floating stars */}
-                      <svg className="absolute -top-3 right-10" width="18" height="18" viewBox="0 0 24 24" fill="#a78bfa" style={{ filter: "drop-shadow(0 0 7px #a78bfa)", animation: "star-float-1 3.6s ease-in-out infinite" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
-                      <svg className="absolute top-6 -right-3" width="13" height="13" viewBox="0 0 24 24" fill="#22d3ee" style={{ filter: "drop-shadow(0 0 5px #22d3ee)", animation: "star-float-2 4.4s ease-in-out infinite 0.7s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
-                      <svg className="absolute -top-5 right-2" width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" style={{ filter: "drop-shadow(0 0 4px #fbbf24)", animation: "star-float-3 5s ease-in-out infinite 1.2s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
-                      <svg className="absolute top-20 -right-4" width="15" height="15" viewBox="0 0 24 24" fill="#c084fc" style={{ filter: "drop-shadow(0 0 6px #c084fc)", animation: "star-float-1 4.8s ease-in-out infinite 1.8s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
-                      <svg className="absolute -top-1 left-2" width="11" height="11" viewBox="0 0 24 24" fill="#67e8f9" style={{ filter: "drop-shadow(0 0 4px #67e8f9)", animation: "star-float-2 3.8s ease-in-out infinite 0.4s" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <TutorMascot className="relative w-44 drop-shadow-[0_0_24px_rgba(16,185,129,.3)]" />
+                      <svg className="absolute -top-2 right-8" width="16" height="16" viewBox="0 0 24 24" fill="#a78bfa" style={{ filter: "drop-shadow(0 0 6px #a78bfa)" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute top-8 -right-2" width="12" height="12" viewBox="0 0 24 24" fill="#22d3ee" style={{ filter: "drop-shadow(0 0 5px #22d3ee)" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
+                      <svg className="absolute -top-4 right-1" width="9" height="9" viewBox="0 0 24 24" fill="#fbbf24" style={{ filter: "drop-shadow(0 0 4px #fbbf24)" }}><polygon points="12,2 13.9,8.6 21,9.3 15.9,14 17.6,21 12,17.5 6.4,21 8.1,14 3,9.3 10.1,8.6"/></svg>
                     </div>
                   )}
 
