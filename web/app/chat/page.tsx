@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
@@ -50,7 +50,7 @@ const MODELS = [
 
 type ModelId = typeof MODELS[number]["id"];
 
-export default function ChatPage() {
+function ChatPage() {
   const searchParams = useSearchParams();
   const initialModel = (MODELS.find(m => m.id === searchParams.get("model"))?.id ?? "gpt-4o-mini") as ModelId;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -330,5 +330,13 @@ export default function ChatPage() {
 
       <FlashcardDeck open={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} model={model} />
     </div>
+  );
+}
+
+export default function ChatPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <ChatPage />
+    </Suspense>
   );
 }
