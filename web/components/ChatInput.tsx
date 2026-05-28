@@ -92,30 +92,41 @@ export default function ChatInput({
     e.target.value = "";
   }
 
-  // Upload a PDF, extract its text server-side (no embeddings — fast path),
-  // and stash the result so it can be sent as system context on every turn.
+  // Extract PDF text entirely in the browser using unpdf (no server upload).
+  // This bypasses Vercel's 4.5 MB request body limit — only the extracted text
+  // (typically 30–80 KB for a 50-page doc) is ever sent to the server.
   async function handlePdfChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !onPdfChange) return;
     setPdfLoading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/pdf", { method: "POST", body: form });
-      const data = await res.json() as {
-        name?: string; text?: string; chars?: number; truncated?: boolean; error?: string;
-      };
-      if (!res.ok || data.error || !data.text) {
-        throw new Error(data.error ?? `HTTP ${res.status}`);
-      }
+      const buffer = await file.arrayBuffer();
+      // Dynamic import keeps the PDF.js bundle out of the initial JS load.
+      const { extractText, configureUnpdf } = await import("unpdf");
+      // Run in main thread (no Worker needed in browser environments).
+      configureUnpdf({ workerSrc: "" } as Parameters<typeof configureUnpdf>[0]);
+      const { text } = await extractText(new Uint8Array(buffer));
+      const pages = Array.isArray(text) ? text : [text];
+      const joined = pages
+        .map((pageText, i) => {
+          const cleaned = (pageText ?? "").replace(/\s+/g, " ").trim();
+          return cleaned ? `[Page ${i + 1}]\n${cleaned}` : "";
+        })
+        .filter(Boolean)
+        .join("\n\n");
+
+      if (!joined) throw new Error("No selectable text found. Scanned / image-only PDFs are not supported.");
+
+      const MAX_CHARS = 150_000;
+      const truncated = joined.length > MAX_CHARS;
       onPdfChange({
-        name: data.name ?? file.name,
-        text: data.text,
-        chars: data.chars ?? data.text.length,
-        truncated: data.truncated,
+        name: file.name,
+        text: truncated ? joined.slice(0, MAX_CHARS) : joined,
+        chars: joined.length,
+        truncated,
       });
     } catch (err) {
-      alert(`PDF upload failed: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`PDF read failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setPdfLoading(false);
       e.target.value = "";
