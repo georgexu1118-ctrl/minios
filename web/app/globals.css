@@ -314,16 +314,16 @@ html, body {
 }
 
 /* ── NousCoder green code theme ──────────────────────────────────── */
-.code-green .markdown-body code {
+.code-green.markdown-body code {
   background: rgba(0, 30, 10, 0.7);
   border-color: rgba(74, 222, 128, 0.2);
   color: #4ade80;
 }
-.code-green .markdown-body pre {
+.code-green.markdown-body pre {
   background: rgba(0, 15, 5, 0.85);
   border-color: rgba(74, 222, 128, 0.2);
 }
-.code-green .markdown-body pre code {
+.code-green.markdown-body pre code {
   color: #4ade80;
   background: transparent;
   border: none;
