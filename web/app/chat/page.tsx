@@ -28,15 +28,15 @@ const MODELS = [
   {
     id: "gpt-4o-mini",
     label: "Kimi K2",
-    role: "Analysis",
-    desc: "Moonshot AI · 1T-param MoE on Groq LPU · AI supply-chain & semis research, live markets, short-form analyst takes",
+    role: "Reasoning",
+    desc: "Moonshot AI · 1T-param MoE · deep reasoning, technical Q&A, analysis, and live research",
     accent: "violet",
   },
   {
     id: "gpt-oss-20b",
     label: "GPT-OSS 20B",
     role: "Educational",
-    desc: "OpenAI open weights · ~1000 tok/s · schoolwork, screenshot problem solving, flashcards",
+    desc: "Our flagship model · step-by-step tutoring, olympiad math, screenshots, PDFs, and flashcards",
     accent: "emerald",
   },
   {

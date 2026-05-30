@@ -21,7 +21,7 @@ const FloatingAaoiTicker = dynamic(() => import("@/components/FloatingAaoiTicker
 
 const filters = [
   { label: "All Models", icon: Box, active: true },
-  { label: "Analysis", icon: Brain },
+  { label: "Reasoning", icon: Brain },
   { label: "Coding", icon: Code2 },
   { label: "Educational", icon: BookOpen },
   { label: "Research", icon: Search },
@@ -29,27 +29,27 @@ const filters = [
 
 const labs = [
   {
-    title: "Analysis Models",
-    description: "Institutional-grade AI supply-chain and semiconductor research — bottleneck analysis, live market intelligence, and short-form analyst takes.",
-    button: "Explore Models",
+    title: "Reasoning Model",
+    description: "Deep reasoning, technical Q&A, analysis, and live research — powered by Kimi K2, a 1T-parameter frontier model.",
+    button: "Open Model",
     href: "/chat?model=gpt-4o-mini",
     tone: "blue",
     badge: "Kimi K2",
     mobileOrder: "order-1",
   },
   {
-    title: "Coding Models",
+    title: "Coding Model",
     description: "NousCoder-14B for code generation, analysis, debugging, and precise developer workflows.",
-    button: "Try NousCoder",
+    button: "Open Model",
     href: "/chat?model=nouscoder-14b",
     tone: "emerald",
     badge: "NousCoder-14B",
     mobileOrder: "order-2",
   },
   {
-    title: "Educational Models",
-    description: "Step-by-step tutoring, olympiad math, screenshots, PDFs, and study flashcards.",
-    button: "Launch Tutor",
+    title: "Educational Model",
+    description: "Our flagship model — step-by-step tutoring, olympiad math, screenshots, PDFs, and study flashcards.",
+    button: "Open Model",
     href: "/chat?model=gpt-oss-20b",
     tone: "violet",
     badge: "GPT-OSS 20B",
@@ -111,7 +111,7 @@ export default function HomePage() {
                 Welcome to AAOS Research
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400 md:text-base">
-                A frontier model lab for AI supply-chain analysis, software engineering, education, and live market research.
+                Frontier models for reasoning, software engineering, and education — with live research built in.
               </p>
             </div>
 

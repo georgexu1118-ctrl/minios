@@ -424,112 +424,12 @@ const MATH_LATEX_RULE =
   "For multi-line derivations use one $$\\begin{aligned}...\\end{aligned}$$ block, never raw \\begin{align*}. " +
   "Never mix delimited and undelimited expressions on one equation line, and never output bare ^ or _.";
 
-// Compact term-to-ticker reference — Kimi uses this to tag the right
-// $TICKER whenever a user mentions a technical term, even without naming a company.
-const TERM_TO_TICKER =
-  ' TERM-TO-TICKER (always cashtag matching companies when these terms appear): ' +
-
-  // Accelerators / GPU products
-  'H100/H200/B100/B200/GB200/Blackwell/Hopper/NVLink/CUDA->$NVDA; ' +
-  'MI300X/MI325/MI350/CDNA/ROCm->$AMD; ' +
-  'TPU/Trillium->$GOOGL+$AVGO(makes silicon); ' +
-  'Trainium/Inferentia->$AMZN+$MRVL(networking); ' +
-  'Maia/Cobalt->$MSFT+$MRVL; ' +
-  'MTIA->$META+$MRVL; ' +
-  'Gaudi/Ponte Vecchio->$INTC; ' +
-  'BlueField/ConnectX/Spectrum-X->$NVDA; ' +
-  'Octeon/DPU(Marvell)->$MRVL; ' +
-  'CoreWeave/neocloud->$CRWV $ORCL; ' +
-  'ARM/Neoverse->$ARM; ' +
-
-  // Memory
-  'HBM/HBM2e/HBM3/HBM3e/HBM4/high-bandwidth memory->$MU+SK Hynix; ' +
-  'HBM bit growth/stack height/8Hi/12Hi/16Hi->$MU (primary US play); ' +
-  'DDR5/LPDDR5/GDDR7/CXL memory->$MU; ' +
-  'CXL/compute express link->$MU $MRVL $AVGO $INTC; ' +
-
-  // Foundry / process nodes
-  'N3/N2/N2P/A16/2nm/3nm/leading-edge node->$TSM; ' +
-  'EUV/High-NA EUV/scanner->$ASML; ' +
-  'Intel 18A/Intel Foundry/IFS->$INTC; ' +
-  'WFE/wafer fab equipment->$AMAT $LRCX $KLAC $ASML; ' +
-  'ALD/CVD/PVD/etch/CMP->$AMAT $LRCX; ' +
-  'inspection/metrology/overlay->$KLAC; ' +
-
-  // Advanced packaging
-  'CoWoS/CoWoS-L/CoWoS-S/CoWoS-R/SoIC/3D-IC/wafer-on-wafer->$TSM; ' +
-  'OSAT/outsourced assembly/Amkor->$AMKR; ' +
-  'ABF substrate/FC-BGA/organic substrate->$AMKR; ' +
-  'chiplet/UCIe/die stacking/fan-out/FOWLP/flip-chip->$TSM $AMKR $INTC; ' +
-
-  // Optical
-  'optical transceiver/pluggable/QSFP/OSFP/QSFPDD->$COHR $LITE $FN $AAOI; ' +
-  'EML laser/electro-absorption modulated laser->$COHR $LITE; ' +
-  'InP/indium phosphide/GaAs/VCSEL->$COHR $LITE; ' +
-  'silicon photonics/SiPh/CPO/co-packaged optics->$AVGO $INTC $COHR; ' +
-  'coherent optics/ZR/ZR+/800ZR/ICR->$COHR $LITE; ' +
-  '1.6T/800G/400G transceiver->$COHR $LITE $FN $AAOI $AVGO; ' +
-  'Fabrinet/contract optical mfg->$FN; ' +
-  'optical DSP->$MRVL $COHR; ' +
-
-  // Networking
-  'Tomahawk/Jericho/Ramon/switch ASIC->$AVGO; ' +
-  'Tofino/programmable switch->$INTC; ' +
-  'Spectrum/Mellanox switch->$NVDA; ' +
-  '400G/800G/1.6T Ethernet switch->$AVGO $ANET; ' +
-  'InfiniBand/NDR/HDR->$NVDA; ' +
-  'NVLink Switch->$NVDA; ' +
-  'AEC/active electrical cable/retimer/gearbox->$CRDO; ' +
-  'PAM4/DSP retimer->$MRVL $CRDO; ' +
-  'scale-up network/GPU-to-GPU->$NVDA $AVGO $CRDO; ' +
-  'scale-out network/rack-to-rack/spine->$AVGO $ANET $MRVL; ' +
-  'SmartNIC->$NVDA $MRVL; ' +
-
-  // Power / cooling / infra
-  'liquid cooling/direct liquid cooling/immersion/CDU->$VRT; ' +
-  'UPS/uninterruptible power supply->$VRT $ETN; ' +
-  'PDU/power distribution/busbar->$VRT $ETN; ' +
-  'transformer/switchgear/grid interconnect->$GEV $ETN; ' +
-  'PMIC/VRM/power management IC->$MPWR; ' +
-  'generator/backup power->$VRT $ETN $GEV $POWL; ' +
-
-  // Hyperscalers
-  'Azure/Microsoft AI capex->$MSFT; ' +
-  'AWS/Amazon capex->$AMZN; ' +
-  'Google Cloud/GCP/Alphabet AI->$GOOGL; ' +
-  'Meta AI capex/FAIR->$META; ' +
-  'OCI/Oracle Cloud->$ORCL; ' +
-
-  // Edge / software
-  'Apple Silicon/M-series/A-series->$AAPL; ' +
-  'Dojo/FSD chip/Tesla AI->$TSLA; ' +
-  'Palantir/AIP->$PLTR. ';
-
-// Layer overview (keep concise)
-const AI_SUPPLY_CHAIN_KNOWLEDGE =
-  ' AI SUPPLY-CHAIN EXPERTISE: reason from the bottleneck. ' +
-  'Layer overview: Compute $NVDA $AMD; ASICs $AVGO $MRVL $INTC; Foundry $TSM $INTC; WFE $ASML $AMAT $LRCX $KLAC; ' +
-  'HBM $MU+SK Hynix; Packaging $TSM CoWoS/SoIC+$AMKR; Optical $COHR $LITE $FN $AAOI; ' +
-  'Networking $AVGO $ANET $MRVL $CRDO; Power $VRT $ETN $GEV $MPWR; Capex $MSFT $GOOGL $AMZN $META $ORCL $CRWV. ' +
-  'Trace second-order effects; separate secular demand from double-ordering; flag mispriced chokepoints. ' +
-  'Analysis only — no buy/sell calls.';
-
-const SHORTFORM_ANALYSIS_STYLE =
-  " SHORT-FORM MODE — when asked for a take/tweet/thread: write like a sharp AI-hardware analyst on X. " +
-  "Cashtag every company ($NVDA, $TSM...); thesis/bottleneck in line 1; short punchy lines, not paragraphs; thread = numbered (1/ 2/ 3/); " +
-  "be quantitative (CoWoS starts, HBM bit growth, 800G->1.6T, capex $, margin deltas); opinionated angle + key risk; tweet <280 chars; no disclaimer walls; commentary not advice.";
-
 const SYSTEM_PROMPT =
-  "You are AAOS, an AI analyst. " +
-  "Tools: get_stock (live quotes), web_search (news/events after cutoff), fetch_page (user URLs). " +
-  "Call web_search only for news/current events/prices — not for supply-chain knowledge you already have. " +
-  "For AI/semis/datacenter analysis answer directly from expertise below. " +
-  "CRITICAL: always tag $TICKER for every company using the TERM-TO-TICKER map below — even when the user only used a technical term (e.g. 'CoWoS' -> $TSM, 'EML laser' -> $COHR $LITE, 'retimer' -> $CRDO). " +
-  "Cite source + date for news. For stock moves separate price action from catalysts. " +
-  "Be concise. Bullets for multi-part answers." +
-  TERM_TO_TICKER +
-  AI_SUPPLY_CHAIN_KNOWLEDGE +
-  SHORTFORM_ANALYSIS_STYLE +
+  "You are AAOS — a general-purpose AI assistant with deep knowledge of technology, AI, software, and science. " +
+  "Call web_search for current events, recent news, or anything time-sensitive after your training cutoff. " +
+  "Call fetch_page when the user pastes a URL. " +
+  "Answer technical and general questions confidently from your own knowledge. " +
+  "Be concise, accurate, and direct. Use bullet points for multi-part answers." +
   MATH_LATEX_RULE;
 
 // ---------------------------------------------------------------------------
@@ -718,7 +618,7 @@ const SYSTEM_PROMPT_EDU =
   "For number theory proofs, test exceptional small primes first, then use modular arithmetic and verify every surviving candidate. " +
   "Be concise, accurate, and patient. Prefer numbered steps and short examples. " +
   "When asked for flashcards, suggest the user click the Flashcards button for a structured set. " +
-  "For current stock prices or stock comparisons, use get_stock rather than web_search. For current news, use web_search. " +
+  "For current news or events after your training cutoff, use web_search. " +
   "If a live research context has already been supplied, answer from it directly and never repeat its tool requests. " +
   "When the user pastes a URL (solution page, problem set, article), ALWAYS call fetch_page with that URL first — never say you cannot access it. " +
   "Math contest workflow: if the user gives you a contest URL AND a solution URL, call fetch_page on BOTH in the same turn (parallel). " +
@@ -823,7 +723,6 @@ export async function POST(req: NextRequest) {
   }));
   const latestUserQuery = [...rawMessages].reverse().find(message => message.role === "user")?.content ?? "";
   const shouldPrefetchNews = !isFlashcards && !hasImage && needsLiveNews(latestUserQuery);
-  const shouldPrefetchStocks = !isFlashcards && !hasImage && needsStockQuotes(latestUserQuery);
   const instantEducationalAnswer = requested === "gpt-oss-20b" && !isFlashcards && !hasImage && !body.pdfText
     ? fastEducationalAnswer(latestUserQuery)
     : undefined;
@@ -953,60 +852,34 @@ export async function POST(req: NextRequest) {
         }
 
         // ── REGULAR CHAT MODE ────────────────────────────────────────
-        const hasPrefetchedResearch = shouldPrefetchNews || shouldPrefetchStocks;
+        const hasPrefetchedResearch = shouldPrefetchNews;
         const isEdu = requested === "gpt-oss-20b";
         const isCoding = requested === "nouscoder-14b";
         const hasPdf = !!(body.pdfText && body.pdfText.trim());
 
-        // Static supply-chain knowledge fast-path: if the query is about semis /
-        // AI hardware / supply-chain topics but NOT asking for live news or prices,
-        // skip tools entirely — Kimi already knows this from training and a tool
-        // round-trip (2–4 s) would only slow things down.
-        const LIVE_KEYWORDS = /\b(news|today|latest|recent|now|current|this week|this month|this year|price|stock|earnings|after.?hours|pre.?market|beat|miss|guidance|quarter|announce)\b/i;
-        const SUPPLYCHAIN_KEYWORDS = /\b(hbm|hbm2e|hbm3|hbm3e|hbm4|cowos|cowos-[lsr]|soic|3d.?ic|nvlink|gddr|gddr7|ddr5|lpddr5|cxl|packaging|osat|wafer|foundry|fab|process node|n[23456]|tsmc|asml|eul|high.?na|lpcamm|transceiver|optical|pluggable|cpo|co.?packaged|qsfp|osfp|eml laser|eml|inp|gaas|vcsel|siph|silicon photonics|coherent optics|zr\+?|icr|datacenter|hyperscaler|capex|accelerator|gpu|tpu|asic|inference|training|silicon|semiconductor|semis?|supply.?chain|bottleneck|blackwell|hopper|gb200|b200|h100|h200|mi300|mi325|mi350|trainium|inferentia|maia|cobalt|mtia|gaudi|bluefield|connectx|spectrum-x|octeon|tomahawk|jericho|ramon|tofino|infiniband|ndr|hdr|aec|active electrical cable|retimer|gearbox|pam4|smartnic|liquid cooling|immersion|cdu|ups|pdu|busbar|transformer|pmic|vrm|power management|cowos|chiplet|ucie|fowlp|flip.?chip|abf substrate|fc.?bga|amkor|fabrinet|lumentum|coherent|aaoi|credo|vertiv|arm neoverse|scale.?up network|scale.?out network|neocloud|coreweave)\b/i;
-        const isStaticSupplyChain = SUPPLYCHAIN_KEYWORDS.test(latestUserQuery) && !LIVE_KEYWORDS.test(latestUserQuery);
+        // useTools: skip for images, pre-fetched research, and coding
+        const useTools = !hasImage && !hasPrefetchedResearch && !isCoding;
 
-        // useTools: skip for images, pre-fetched research, coding, and static supply-chain queries
-        const useTools = !hasImage && !hasPrefetchedResearch && !isCoding && !isStaticSupplyChain;
-
-        // Token caps: general Kimi uses adaptive cap — short/conversational gets 800,
-        // analysis/thread requests get 1200. Other models unchanged.
-        const ANALYSIS_KEYWORDS = /\b(deep.?dive|analysis|thread|tweet|take|breakdown|explain|compare|vs\.?|versus|outlook|thesis|risk|bull|bear|thesis)\b/i;
-        const generalTok = ANALYSIS_KEYWORDS.test(latestUserQuery) ? 1200 : 800;
-        const maxTok = hasImage ? 1200 : hasPdf ? 3000 : isEdu ? 2000 : isCoding ? 1800 : generalTok;
+        const maxTok = hasImage ? 1200 : hasPdf ? 3000 : isEdu ? 2000 : isCoding ? 1800 : 1000;
 
         if (hasPrefetchedResearch) {
           let newsResult: Record<string, unknown> | undefined;
-          if (shouldPrefetchNews) {
-            const searchQuery = freshNewsQuery(latestUserQuery);
-            send({ type: "tool_call", tool: "web_search", args: { query: searchQuery } });
-            try {
-              const results = await googleNews(searchQuery);
-              newsResult = results.length
-                ? { query: searchQuery, source: "google news", retrieved_at: new Date().toISOString(), results }
-                : await webSearch(searchQuery);
-            } catch {
-              newsResult = await webSearch(searchQuery);
-            }
-            send({ type: "tool_result", tool: "web_search", result: newsResult });
+          const searchQuery = freshNewsQuery(latestUserQuery);
+          send({ type: "tool_call", tool: "web_search", args: { query: searchQuery } });
+          try {
+            const results = await googleNews(searchQuery);
+            newsResult = results.length
+              ? { query: searchQuery, source: "google news", retrieved_at: new Date().toISOString(), results }
+              : await webSearch(searchQuery);
+          } catch {
+            newsResult = await webSearch(searchQuery);
           }
-
-          const quoteResults: Record<string, unknown>[] = [];
-          for (const ticker of shouldPrefetchStocks ? detectedTickers(latestUserQuery) : []) {
-            send({ type: "tool_call", tool: "get_stock", args: { symbol: ticker } });
-            const quoteResult = await getStock(ticker);
-            send({ type: "tool_result", tool: "get_stock", result: quoteResult });
-            quoteResults.push(quoteResult);
-          }
+          send({ type: "tool_result", tool: "web_search", result: newsResult });
 
           const liveContext =
-            "Live research has already been retrieved for this request. Answer directly from this context; " +
-            "do not call tools again for this answer. " +
-            "cite publication names and publication dates for news items, state the retrieval timestamp when useful, " +
-            "and provide article links when summarizing headlines. For stock news, separate the live quote from " +
-            "reported developments and do not assert causation unless a cited source explicitly reports it.\n\n" +
-            (newsResult ? `NEWS_RESULTS=${JSON.stringify(newsResult)}\n` : "") +
-            (quoteResults.length ? `STOCK_QUOTES=${JSON.stringify(quoteResults)}` : "");
+            "Live research has already been retrieved. Answer directly from this context; do not call tools again. " +
+            "Cite publication names and dates for news items.\n\n" +
+            `NEWS_RESULTS=${JSON.stringify(newsResult)}`;
           const historyStart = messages.length - rawMessages.length;
           messages.splice(historyStart, 0, { role: "system", content: liveContext });
         }
