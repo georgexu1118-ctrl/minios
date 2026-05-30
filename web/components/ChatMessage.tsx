@@ -122,6 +122,21 @@ export function normalizeMath(text: string): string {
     }
   );
 
+  // ── Step 1f: "$ formula" at line-start → $$ display block ────────────────
+  // A single $ followed by a space at the start of a line is the model's
+  // mis-use of inline delimiters for display math.  KaTeX/remark-math rejects
+  // it (space after $ breaks inline parsing), so it leaks as raw text.
+  // Require at least one display-math command before upgrading, so plain
+  // prose that starts with a $ symbol (prices, variables) is never touched.
+  text = text.replace(
+    /^[ \t]*\$(?!\$) ([^$\n]+?)\$?[ \t]*$/gm,
+    (_m, inner) => {
+      const content = inner.trim();
+      if (!/\\(?:frac|left|right|quad|displaystyle|sum|int|prod|lim|binom|begin|sqrt|over|text|cdot|times|infty|partial|nabla)\b/.test(content)) return _m;
+      return `$$\n${content}\n$$`;
+    }
+  );
+
   // ── Step 2: Fix $$ glued to surrounding prose on the same line ─────────────
   // e.g. "…formula $$ 2. Next section" → "…formula\n$$\n2. Next section"
   // Don't touch $$ that are already the only thing on a line.
