@@ -29,7 +29,10 @@ function ToolBadge({ tool, args }: { tool: string; args: Record<string, unknown>
 }
 
 function isStandaloneEquation(line: string): boolean {
-  const expression = line.trim().replace(/^(?:[-*]\s+|\d+[.)]\s+)/, "");
+  const trimmed = line.trim();
+  if (trimmed.startsWith("$$") || trimmed.endsWith("$$")) return false;
+
+  const expression = trimmed.replace(/^(?:[-*]\s+|\d+[.)]\s+)/, "");
   if (!expression.includes("=") || !/(?:\\(?:frac|sqrt|binom|sum|int|prod|lim|left|choose|over)|\^|_)/.test(expression)) return false;
 
   const withoutCommands = expression
@@ -41,7 +44,7 @@ function isStandaloneEquation(line: string): boolean {
 }
 
 function normalizeOutsideMath(text: string): string {
-  const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[^$\n]*\$)/g);
+  const parts = text.split(/(\$\$(?:(?!\n\s*\n)[\s\S])*?\$\$|\$[^$\n]*\$)/g);
   return parts.map((part, index) => {
     if (index % 2 === 1) return part;
     return part.replace(
@@ -94,7 +97,7 @@ function escapeNonMathDollars(text: string): string {
     if (index % 2 === 1) return part; // inside code block/span — leave untouched
     
     // Split by display math $$...$$ first to preserve display math blocks
-    const displayParts = part.split(/(\$\$[\s\S]*?\$\$)/g);
+    const displayParts = part.split(/(\$\$(?:(?!\n\s*\n)[\s\S])*?\$\$)/g);
     return displayParts.map((dispPart, dispIndex) => {
       if (dispIndex % 2 === 1) return dispPart; // inside display math — leave untouched
       
@@ -155,6 +158,15 @@ function hasStrongMathSignals(str: string): boolean {
 }
 
 export function normalizeMath(text: string): string {
+  // Pre-step 0: Fix unmatched closing $$ following an inline or itemized formula, like:
+  // "- For $ p = 3 $:\n p^2 + 2 = 3^2 + 2 = 11 \quad \text{(prime)}\n $$"
+  text = text.replace(
+    /^([ \t]*-?[ \t]*(?:For|for)[ \t]*\$[ \t]*[a-zA-Z][ \t]*=[ \t]*\d+[ \t]*\$:[ \t]*)\n([ \t]*[^\n$]+?[ \t]*)\n([ \t]*\$\$[ \t]*)$/gim,
+    (match, prefix, bareEq) => {
+      return `${prefix}\n$$\n${bareEq.trim()}\n$$\n`;
+    }
+  );
+
   // Pre-step: Detect/fix missing opening display math delimiters ($$)
   // E.g., lines starting with math and ending with $$ or followed by \n$$
   text = text.replace(
@@ -271,7 +283,7 @@ export function normalizeMath(text: string): string {
       .replace(/\\\(([\s\S]*?)\\\)/g, (_match, body) => `$${body}$`);
 
     return normalizeDisplayEnvironments(normalizedDelimiters)
-      .split(/(\$\$[\s\S]*?\$\$)/g)
+      .split(/(\$\$(?:(?!\n\s*\n)[\s\S])*?\$\$)/g)
       .map((segment, segmentIndex) => {
         if (segmentIndex % 2 === 1) return segment;
         return segment
