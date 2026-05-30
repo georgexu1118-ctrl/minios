@@ -197,6 +197,7 @@ html, body {
 
 /* ── Animation classes ───────────────────────────────────────────── */
 .animate-spin-slow          { animation: spin-slow 25s linear infinite; }
+.animate-neptune-spin-slow  { animation: spin-slow 45s linear infinite; }
 .animate-spin-slow-med      { animation: spin-slow 18s linear infinite; }
 .animate-spin-reverse       { animation: spin-reverse 30s linear infinite; }
 .animate-spin-reverse-fast  { animation: spin-reverse 20s linear infinite; }

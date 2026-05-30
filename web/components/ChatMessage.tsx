@@ -270,123 +270,59 @@ export function normalizeMath(text: string): string {
 }
 
 function NeptuneAvatar({ size }: { size: number }) {
-  const blur = (f: number) => `${Math.max(1, size * f)}px`;
   return (
-    <div className="relative overflow-hidden rounded-full flex-shrink-0" style={{ width: size, height: size }}>
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes neptune-avatar-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-neptune-spin-slow {
-          animation: neptune-avatar-spin 45s linear infinite;
-        }
-      `}} />
-      
-      <div className="absolute inset-0 rounded-full" style={{
-        background:
-          "radial-gradient(circle at 36% 34%, #3b82f6 0%, #2563eb 8%, #1d4ed8 18%, #1e3a8a 34%, #172554 54%, #0f172a 74%, #060c18 90%, #000 100%)",
-        boxShadow:
-          `inset -${size * 0.22}px -${size * 0.12}px ${size * 0.4}px rgba(0,0,0,0.85),` +
-          `inset ${size * 0.04}px ${size * 0.04}px ${size * 0.22}px rgba(96,165,250,0.12)`,
-      }}>
-        {/* Rotating atmospheric features */}
-        <div className="absolute inset-0 animate-neptune-spin-slow" style={{ transformOrigin: "center center" }}>
-          {/* Painting brushstroke bands */}
-          <div className="absolute" style={{
-            top: "18%", left: "-8%", width: "116%", height: "22%",
-            background: "linear-gradient(182deg, transparent 0%, rgba(59,130,246,0.28) 35%, rgba(96,165,250,0.18) 60%, rgba(147,197,253,0.08) 80%, transparent 100%)",
-            filter: `blur(${blur(0.045)})`,
-            transform: "rotate(-1.5deg)",
-          }} />
-          <div className="absolute" style={{
-            top: "44%", left: "-8%", width: "116%", height: "18%",
-            background: "linear-gradient(178deg, transparent 0%, rgba(37,99,235,0.22) 40%, rgba(59,130,246,0.13) 68%, transparent 100%)",
-            filter: `blur(${blur(0.05)})`,
-            transform: "rotate(1deg)",
-          }} />
-          <div className="absolute" style={{
-            top: "66%", left: "-8%", width: "116%", height: "12%",
-            background: "linear-gradient(181deg, transparent 0%, rgba(29,78,216,0.16) 45%, rgba(37,99,235,0.09) 72%, transparent 100%)",
-            filter: `blur(${blur(0.04)})`,
-          }} />
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 relative">
+      <defs>
+        {/* Base planetary body gradient */}
+        <radialGradient id="neptuneGrad" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#60a5fa" />
+          <stop offset="25%" stopColor="#2563eb" />
+          <stop offset="60%" stopColor="#1d4ed8" />
+          <stop offset="85%" stopColor="#1e3a8a" />
+          <stop offset="100%" stopColor="#0b1329" />
+        </radialGradient>
+        
+        {/* Specular highlighting layer */}
+        <radialGradient id="specularGrad" cx="25%" cy="25%" r="35%">
+          <stop offset="0%" stopColor="#ebf8ff" stopOpacity="0.65" />
+          <stop offset="100%" stopColor="#ebf8ff" stopOpacity="0" />
+        </radialGradient>
 
-          {/* Great Dark Spot — deep void */}
-          <div className="absolute" style={{
-            top: "34%", left: "20%", width: "30%", height: "18%",
-            background: "radial-gradient(ellipse at 45% 50%, rgba(3,7,24,0.95) 0%, rgba(8,14,42,0.80) 48%, transparent 80%)",
-            filter: `blur(${blur(0.024)})`,
-            transform: "rotate(-8deg)",
-          }} />
-          {/* Dark Spot inner swirl */}
-          <div className="absolute" style={{
-            top: "37%", left: "24%", width: "20%", height: "12%",
-            background: "radial-gradient(ellipse at 42% 48%, rgba(15,23,60,0.88) 0%, transparent 75%)",
-            filter: `blur(${blur(0.016)})`,
-            transform: "rotate(-10deg)",
-          }} />
+        {/* 3D Terminator Shadow */}
+        <radialGradient id="shadowGrad" cx="70%" cy="70%" r="55%">
+          <stop offset="0%" stopColor="#000000" stopOpacity="0" />
+          <stop offset="65%" stopColor="#000000" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.95" />
+        </radialGradient>
+      </defs>
 
-          {/* Scooter cloud — bright brushstroke */}
-          <div className="absolute" style={{
-            top: "43%", left: "47%", width: "16%", height: "7%",
-            background: "radial-gradient(ellipse, rgba(219,234,254,0.65) 0%, rgba(186,230,253,0.32) 50%, transparent 80%)",
-            filter: `blur(${blur(0.016)})`,
-          }} />
+      {/* Base sphere */}
+      <circle cx="16" cy="16" r="15" fill="url(#neptuneGrad)" />
 
-          {/* Cirrus streaks */}
-          <div className="absolute" style={{
-            top: "21%", left: "28%", width: "36%", height: "4%",
-            background: "linear-gradient(90deg, transparent, rgba(186,230,253,0.40) 35%, rgba(219,234,254,0.28) 58%, transparent)",
-            filter: `blur(${blur(0.014)})`,
-            transform: "rotate(-2.5deg)",
-          }} />
-          <div className="absolute" style={{
-            top: "57%", left: "12%", width: "28%", height: "3%",
-            background: "linear-gradient(92deg, transparent, rgba(147,197,253,0.30) 40%, rgba(186,230,253,0.18) 65%, transparent)",
-            filter: `blur(${blur(0.014)})`,
-            transform: "rotate(1.5deg)",
-          }} />
+      {/* Rotating atmospheric details */}
+      <g className="animate-neptune-spin-slow" style={{ transformOrigin: "16px 16px" }}>
+        {/* Atmospheric banded structures */}
+        <path d="M 1 12 Q 16 16 31 12" stroke="#3b82f6" strokeWidth="1.2" opacity="0.35" />
+        <path d="M 1 15 Q 16 19 31 15" stroke="#1d4ed8" strokeWidth="1.5" opacity="0.4" />
+        <path d="M 2 20 Q 16 23 30 20" stroke="#bae6fd" strokeWidth="0.8" opacity="0.25" />
+        <path d="M 3 24 Q 16 26 29 24" stroke="#1d4ed8" strokeWidth="1" opacity="0.3" />
 
-          {/* Atmospheric banding */}
-          <div className="absolute inset-0" style={{
-            backgroundImage:
-              "repeating-linear-gradient(177deg, transparent 0%, rgba(30,58,138,0.22) 2.5%, transparent 5.5%, rgba(59,130,246,0.10) 8.5%, transparent 12%)",
-            mixBlendMode: "overlay",
-          }} />
-        </div>
+        {/* Great Dark Spot */}
+        <ellipse cx="10" cy="14" rx="3.5" ry="2.2" fill="#040a1c" opacity="0.85" />
+        <ellipse cx="10" cy="14" rx="2" ry="1" fill="#000000" opacity="0.5" />
 
-        {/* Polar brightening */}
-        <div className="absolute" style={{
-          top: "-4%", left: "8%", width: "84%", height: "34%",
-          background: "radial-gradient(ellipse at 50% 18%, rgba(147,197,253,0.20) 0%, rgba(96,165,250,0.08) 50%, transparent 75%)",
-          filter: `blur(${blur(0.06)})`,
-        }} />
-        <div className="absolute" style={{
-          bottom: "-4%", left: "12%", width: "76%", height: "28%",
-          background: "radial-gradient(ellipse at 50% 82%, rgba(96,165,250,0.14) 0%, transparent 70%)",
-          filter: `blur(${blur(0.05)})`,
-        }} />
+        {/* Scooter cloud */}
+        <ellipse cx="21" cy="17" rx="1.8" ry="0.8" fill="#e0f2fe" opacity="0.75" />
+        <path d="M 18 18 Q 22 17 25 18" stroke="#bae6fd" strokeWidth="0.5" opacity="0.6" />
+      </g>
 
-        {/* Chromatic aberration */}
-        <div className="absolute inset-0" style={{
-          background: "radial-gradient(ellipse at 8% 50%, rgba(96,165,250,0.18) 0%, transparent 38%)",
-          mixBlendMode: "screen",
-        }} />
+      {/* Stationary highlights and shadows to lock the light source direction */}
+      {/* Specular light spot */}
+      <circle cx="11" cy="11" r="8" fill="url(#specularGrad)" />
 
-        {/* Terminator shadow */}
-        <div className="absolute inset-0" style={{
-          background: "radial-gradient(circle at 68% 60%, transparent 22%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.82) 88%)",
-        }} />
-
-        {/* Specular highlights */}
-        <div className="absolute rounded-full" style={{
-          top: `${size * 0.07}px`, left: `${size * 0.20}px`,
-          width: size * 0.24, height: size * 0.15,
-          background: "radial-gradient(circle, rgba(219,234,254,0.52) 0%, rgba(186,230,253,0.22) 45%, transparent 75%)",
-          filter: `blur(${blur(0.012)})`,
-        }} />
-      </div>
-    </div>
+      {/* 3D sphere spherical terminator shadow overlay */}
+      <circle cx="16" cy="16" r="15.2" fill="url(#shadowGrad)" pointerEvents="none" />
+    </svg>
   );
 }
 
