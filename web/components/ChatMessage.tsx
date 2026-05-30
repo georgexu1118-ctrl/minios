@@ -51,28 +51,76 @@ function normalizeOutsideMath(text: string): string {
   }).join("");
 }
 
+// All LaTeX display-math environment names that need $$...$$ wrapping.
+const DISPLAY_ENV_RE = /align(?:ed|\*)?|equation\*?|gather(?:ed|\*)?|multline\*?|cases/;
+// Maps each environment to the KaTeX-safe inner env name.
+function targetEnv(env: string): string {
+  if (/^align/.test(env)) return "aligned";
+  if (/^gather/.test(env)) return "gathered";
+  return env; // equation, cases, multline → keep as-is (KaTeX supports them inside $$)
+}
+
 function normalizeDisplayEnvironments(text: string): string {
+  // Unified pattern: matches \begin{ENV}...\end{ENV} where ENV is any display env.
+  // Strips surrounding $/$$ delimiters (whatever the model used) and rewraps uniformly.
   return text.replace(
-    /\\begin\{align\*?\}([\s\S]*?)(?:\\end\{align\*?\}|(?=\n\s*\n|$))/g,
-    (_match, body) => `\n$$\n\\begin{aligned}\n${body.trim()}\n\\end{aligned}\n$$\n`
+    new RegExp(
+      `\\$?\\$?\\s*\\\\begin\\{(${DISPLAY_ENV_RE.source})\\}([\\s\\S]*?)` +
+      `(?:\\\\end\\{(?:${DISPLAY_ENV_RE.source})\\}|(?=\\n\\s*\\n|$))\\s*\\$?\\$?`,
+      "g"
+    ),
+    (_match, env, body) => {
+      const inner = targetEnv(env);
+      return `\n$$\n\\begin{${inner}}\n${body.trim()}\n\\end{${inner}}\n$$\n`;
+    }
   );
 }
 
 export function normalizeMath(text: string): string {
   // ── Step 1: Rescue LaTeX mistakenly wrapped in fenced code blocks ──────────
-  // Some models emit ```\frac{...}\n$$\n``` when they meant $$\frac{...}$$.
-  // Heuristic: block has LaTeX commands but no code-language keywords.
   text = text.replace(/```(?:[a-z]*\n)?([\s\S]*?)```/g, (match, body) => {
     const trimmed = body.trim();
     const hasLatex = /\\(?:frac|binom|sqrt|sum|int|prod|cdot|dots|left|right|begin|end|alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|phi|infty|partial|times|leq|geq|neq|approx|equiv|to|forall|exists|mathbb|mathrm|text|hat|bar|vec|over|choose)\b/.test(trimmed);
     const hasCode = /(?:^|\n)\s*(?:def |function |class |import |from |const |let |var |return\b|if\s*[({\w]|for\s*[({\w]|while\s*\(|print\s*\(|console\.|#include|public |private |static |void )/m.test(trimmed);
     if (hasLatex && !hasCode) {
-      // Strip any stray $$ delimiters that leaked into the fenced block
       const cleaned = trimmed.replace(/^\$\$\s*/, "").replace(/\s*\$\$$/, "").trim();
       return `\n$$\n${cleaned}\n$$\n`;
     }
     return match;
   });
+
+  // ── Step 1b: Fix display environments with bad/missing delimiters ───────────
+  // Covers: bare \begin{aligned}, single-$ wrapped, or already $$-wrapped (idempotent).
+  // Must run BEFORE the $$ mid-line fixer so we don't double-process.
+  text = normalizeDisplayEnvironments(text);
+
+  // ── Step 1c: Upgrade single-$ inline math that contains \\ (line breaks) ───
+  // Inline math never legitimately needs \\; it means the model mis-wrapped a
+  // multi-line block as inline. Upgrade to display $$.
+  text = text.replace(/(?<!\$)\$([^$]+\\\\[^$]+)\$(?!\$)/g,
+    (_m, inner) => `\n$$\n${inner.trim()}\n$$\n`
+  );
+
+  // ── Step 1d: Upgrade single-$ inline math that contains & alignment ops ────
+  // & inside math signals an aligned expression; must be display math.
+  text = text.replace(/(?<!\$)\$([^$]*&[=<>\s\\|][^$]*)\$(?!\$)/g,
+    (_m, inner) => `\n$$\n${inner.trim()}\n$$\n`
+  );
+
+  // ── Step 1e: Rescue orphaned \end{aligned/align} with no matching \begin{} ──
+  // Happens when the model outputs $\begin{aligned}…\end{aligned}$ but the
+  // \begin{} line was on a prior chunk, leaving content + \end{aligned} $ as
+  // raw visible text. Two guards prevent false positives:
+  //   • [ \t]* instead of \s* — can't jump lines to reach \end{}
+  //   • lookback check — skip if \begin{aligned} already appeared nearby
+  text = text.replace(
+    /((?:[^\n$]*(?:&(?:[=<>|]|\\[a-zA-Z]+)|\\\\)[^\n$]*)+)[ \t]*\\end\{(align(?:ed|\*)?)\}[ \t]*\$?(?!\$)/g,
+    function(_m, body, _env, offset, str) {
+      const lookback = str.slice(Math.max(0, offset - 500), offset);
+      if (/\\begin\{align/.test(lookback)) return _m; // already paired — leave it
+      return `\n$$\n\\begin{aligned}\n${body.trim()}\n\\end{aligned}\n$$\n`;
+    }
+  );
 
   // ── Step 2: Fix $$ glued to surrounding prose on the same line ─────────────
   // e.g. "…formula $$ 2. Next section" → "…formula\n$$\n2. Next section"
