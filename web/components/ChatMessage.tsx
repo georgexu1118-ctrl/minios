@@ -76,7 +76,84 @@ function normalizeDisplayEnvironments(text: string): string {
   );
 }
 
+function isLikelyMath(content: string): boolean {
+  const trimmed = content.trim();
+  if (trimmed.length === 0) return false;
+  // Single letter or letter-number variable like n, x, y, i, j, x1, t0
+  if (/^[a-zA-Z](\d+)?$/.test(trimmed)) return true;
+  // Standard LaTeX commands like \frac, \alpha, etc.
+  if (/\\(?:[a-zA-Z]+)/.test(trimmed)) return true;
+  // Common math symbols or operations
+  if (/[\^_*={}\[\]<>~+\-/]/.test(trimmed)) return true;
+  return false;
+}
+
+function escapeNonMathDollars(text: string): string {
+  const codeParts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
+  return codeParts.map((part, index) => {
+    if (index % 2 === 1) return part; // inside code block/span — leave untouched
+    
+    // Split by display math $$...$$ first to preserve display math blocks
+    const displayParts = part.split(/(\$\$[\s\S]*?\$\$)/g);
+    return displayParts.map((dispPart, dispIndex) => {
+      if (dispIndex % 2 === 1) return dispPart; // inside display math — leave untouched
+      
+      // Process line by line to escape lone / plain text dollar signs
+      const lines = dispPart.split("\n");
+      const processedLines = lines.map(line => {
+        const dollarIndices: number[] = [];
+        for (let i = 0; i < line.length; i++) {
+          if (line[i] === '$') {
+            let backslashCount = 0;
+            let j = i - 1;
+            while (j >= 0 && line[j] === '\\') {
+              backslashCount++;
+              j--;
+            }
+            if (backslashCount % 2 === 0) {
+              dollarIndices.push(i);
+            }
+          }
+        }
+
+        if (dollarIndices.length === 0) return line;
+
+        let result = "";
+        let lastIdx = 0;
+        
+        for (let k = 0; k < dollarIndices.length; k += 2) {
+          if (k + 1 < dollarIndices.length) {
+            const idx1 = dollarIndices[k];
+            const idx2 = dollarIndices[k + 1];
+            const content = line.slice(idx1 + 1, idx2);
+            
+            const isMath = isLikelyMath(content);
+            
+            result += line.slice(lastIdx, idx1);
+            if (isMath) {
+              result += "$" + content + "$";
+            } else {
+              result += "\\$" + content + "\\$";
+            }
+            lastIdx = idx2 + 1;
+          } else {
+            const idx = dollarIndices[k];
+            result += line.slice(lastIdx, idx) + "\\$";
+            lastIdx = idx + 1;
+          }
+        }
+        result += line.slice(lastIdx);
+        return result;
+      });
+      return processedLines.join("\n");
+    }).join("");
+  }).join("");
+}
+
 export function normalizeMath(text: string): string {
+  // First, escape any lone or plain-text dollar signs to avoid confusing the markdown parser
+  text = escapeNonMathDollars(text);
+
   // ── Step 1: Rescue LaTeX mistakenly wrapped in fenced code blocks ──────────
   text = text.replace(/```(?:[a-z]*\n)?([\s\S]*?)```/g, (match, body) => {
     const trimmed = body.trim();
@@ -379,7 +456,7 @@ export default function ChatMessage({ msg, model }: { msg: Message; model?: stri
           ) : (
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}>
+              rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}>
               {normalizeMath(msg.content)}
             </ReactMarkdown>
           )}
