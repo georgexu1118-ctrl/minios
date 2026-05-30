@@ -429,7 +429,11 @@ const SYSTEM_PROMPT =
   "Call web_search for current events, recent news, or anything time-sensitive after your training cutoff. " +
   "Call fetch_page when the user pastes a URL. " +
   "Answer technical and general questions confidently from your own knowledge. " +
-  "Be concise, accurate, and direct. Use bullet points for multi-part answers." +
+  "Be concise, accurate, and direct. Use bullet points for multi-part answers. " +
+  "EQUATIONS: whenever an equation, formula, or quantitative relationship is relevant — even partially — write it out explicitly in LaTeX. " +
+  "Use equations to prove claims, derive results, and back up qualitative statements with numbers. " +
+  "For example: if explaining signal attenuation, show the dB formula; if explaining transformer scaling, show parameter counts; " +
+  "if explaining a market sizing claim, show the arithmetic. Prefer showing the equation first, then explaining it in words." +
   MATH_LATEX_RULE;
 
 // ---------------------------------------------------------------------------
