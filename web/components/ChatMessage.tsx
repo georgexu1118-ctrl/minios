@@ -30,7 +30,7 @@ function ToolBadge({ tool, args }: { tool: string; args: Record<string, unknown>
 
 function isStandaloneEquation(line: string): boolean {
   const expression = line.trim().replace(/^(?:[-*]\s+|\d+[.)]\s+)/, "");
-  if (!expression.includes("=") || !/(?:\\(?:frac|sqrt)|\^|_)/.test(expression)) return false;
+  if (!expression.includes("=") || !/(?:\\(?:frac|sqrt|binom|sum|int|prod|lim|left|choose|over)|\^|_)/.test(expression)) return false;
 
   const withoutCommands = expression
     .replace(/\$/g, "")
@@ -135,6 +135,17 @@ export function normalizeMath(text: string): string {
       if (!/\\(?:frac|left|right|quad|displaystyle|sum|int|prod|lim|binom|begin|sqrt|over|text|cdot|times|infty|partial|nabla)\b/.test(content)) return _m;
       return `$$\n${content}\n$$`;
     }
+  );
+
+  // ── Step 1g: Fix "- $$ formula" — list items with $$ but no closing $$ ─────
+  // A list item that starts with $$ (e.g. "- $$ \binom{...}") has an unclosed
+  // display-math block. An unclosed $$ swallows all following content until the
+  // next $$ in the document, breaking every subsequent equation.
+  // Fix: convert to inline $formula$ — fractions/binomials render fine inline
+  // and the list structure is preserved.  Handles both open-only and open+close.
+  text = text.replace(
+    /^([ \t]*(?:[-*]|\d+[.)]) ?)\$\$[ \t]*([^$\n]+?)[ \t]*(?:\$\$)?[ \t]*$/gm,
+    (_m, listPrefix, formula) => `${listPrefix}$${formula.trim()}$`
   );
 
   // ── Step 2: Fix $$ glued to surrounding prose on the same line ─────────────
