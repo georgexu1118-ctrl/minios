@@ -150,7 +150,33 @@ function escapeNonMathDollars(text: string): string {
   }).join("");
 }
 
+function hasStrongMathSignals(str: string): boolean {
+  return /[\^_*+=\-/]/.test(str) || /\\(?:[a-zA-Z]+)/.test(str);
+}
+
 export function normalizeMath(text: string): string {
+  // Pre-step: Detect/fix missing opening display math delimiters ($$)
+  // E.g., lines starting with math and ending with $$ or followed by \n$$
+  text = text.replace(
+    /^(?<!\$)([ \t]*)([a-zA-Z0-9\s=+\-*/^\\{}()\[\]_<>~,;|!&:]+?)[ \t]*\$\$[ \t]*(?=[^\n$]|$)/gm,
+    (match, space, body) => {
+      if (hasStrongMathSignals(body)) {
+        return `${space}$$\n${space}${body.trim()}\n$$\n`;
+      }
+      return match;
+    }
+  );
+
+  text = text.replace(
+    /^(?<!\$)([ \t]*)([a-zA-Z0-9\s=+\-*/^\\{}()\[\]_<>~,;|!&:]+?)\n[ \t]*\$\$[ \t]*$/gm,
+    (match, space, body) => {
+      if (hasStrongMathSignals(body)) {
+        return `${space}$$\n${space}${body.trim()}\n$$\n`;
+      }
+      return match;
+    }
+  );
+
   // First, escape any lone or plain-text dollar signs to avoid confusing the markdown parser
   text = escapeNonMathDollars(text);
 
@@ -269,12 +295,16 @@ export function normalizeMath(text: string): string {
   }).join("");
 }
 
-function NeptuneAvatar({ size }: { size: number }) {
+function NeptuneAvatar({ size, id }: { size: number; id: string }) {
+  const neptuneGradId = `neptuneGrad-${id}`;
+  const specularGradId = `specularGrad-${id}`;
+  const shadowGradId = `shadowGrad-${id}`;
+
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 relative">
       <defs>
         {/* Base planetary body gradient */}
-        <radialGradient id="neptuneGrad" cx="35%" cy="35%" r="65%">
+        <radialGradient id={neptuneGradId} cx="35%" cy="35%" r="65%">
           <stop offset="0%" stopColor="#60a5fa" />
           <stop offset="25%" stopColor="#2563eb" />
           <stop offset="60%" stopColor="#1d4ed8" />
@@ -283,13 +313,13 @@ function NeptuneAvatar({ size }: { size: number }) {
         </radialGradient>
         
         {/* Specular highlighting layer */}
-        <radialGradient id="specularGrad" cx="25%" cy="25%" r="35%">
+        <radialGradient id={specularGradId} cx="25%" cy="25%" r="35%">
           <stop offset="0%" stopColor="#ebf8ff" stopOpacity="0.65" />
           <stop offset="100%" stopColor="#ebf8ff" stopOpacity="0" />
         </radialGradient>
 
         {/* 3D Terminator Shadow */}
-        <radialGradient id="shadowGrad" cx="70%" cy="70%" r="55%">
+        <radialGradient id={shadowGradId} cx="70%" cy="70%" r="55%">
           <stop offset="0%" stopColor="#000000" stopOpacity="0" />
           <stop offset="65%" stopColor="#000000" stopOpacity="0.45" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0.95" />
@@ -297,7 +327,7 @@ function NeptuneAvatar({ size }: { size: number }) {
       </defs>
 
       {/* Base sphere */}
-      <circle cx="16" cy="16" r="15" fill="url(#neptuneGrad)" />
+      <circle cx="16" cy="16" r="15" fill={`url(#${neptuneGradId})`} />
 
       {/* Rotating atmospheric details */}
       <g className="animate-neptune-spin-slow" style={{ transformOrigin: "16px 16px" }}>
@@ -318,10 +348,10 @@ function NeptuneAvatar({ size }: { size: number }) {
 
       {/* Stationary highlights and shadows to lock the light source direction */}
       {/* Specular light spot */}
-      <circle cx="11" cy="11" r="8" fill="url(#specularGrad)" />
+      <circle cx="11" cy="11" r="8" fill={`url(#${specularGradId})`} />
 
       {/* 3D sphere spherical terminator shadow overlay */}
-      <circle cx="16" cy="16" r="15.2" fill="url(#shadowGrad)" pointerEvents="none" />
+      <circle cx="16" cy="16" r="15.2" fill={`url(#${shadowGradId})`} pointerEvents="none" />
     </svg>
   );
 }
@@ -341,7 +371,7 @@ export default function ChatMessage({ msg, model }: { msg: Message; model?: stri
         <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center relative select-none">
           {/* Inner breathing halo around the planet */}
           <div className="absolute inset-0 rounded-full bg-indigo-500/10 filter blur-[4px] scale-[1.3] pulse-glow animate-pulse" />
-          <NeptuneAvatar size={32} />
+          <NeptuneAvatar size={32} id={msg.id} />
         </div>
       )}
 
