@@ -290,6 +290,88 @@ async function fetchPage(url: string): Promise<Record<string, unknown>> {
 }
 
 // ---------------------------------------------------------------------------
+// Kimi K2 tool-call leak handling
+// ---------------------------------------------------------------------------
+// Kimi K2 (and some other Groq-hosted models) occasionally emit their tool
+// invocations as plain text inside `delta.content` instead of returning a
+// structured `delta.tool_calls`. The leaked syntax shows up in the chat as
+// things like:
+//   <function=web_search>{"query": "..."}</function>
+//   <function(web_search {"query": "..."})>
+//   functools[{"name": "web_search", "arguments": {"query": "..."}}]
+//   <tool_call>{"name": "web_search", "arguments": {...}}</tool_call>
+//   <|tool_calls_section_begin|> ... <|tool_calls_section_end|>
+// We must (a) never stream this raw syntax to the user, and (b) ideally parse
+// it back into a real tool call so the search/fetch actually runs.
+
+// Marker prefixes that signal the *start* of a leaked tool-call region. Once we
+// see one of these we stop streaming visible text and buffer the rest for
+// parsing after the chunk stream ends.
+const TOOLCALL_MARKERS = [
+  "<function",
+  "<tool_call",
+  "<|tool_calls_section_begin|>",
+  "<|tool_call_begin|>",
+  "functools[",
+  "<|python_tag|>",
+];
+
+// Longest marker length — used to decide how big a tail to hold back so a
+// marker split across two deltas is still detected.
+const MAX_MARKER_LEN = Math.max(...TOOLCALL_MARKERS.map(m => m.length));
+
+// Given the not-yet-sent buffer, return how many leading chars are safe to
+// stream now. If a full marker is present we return its index (and flag it);
+// otherwise we hold back any tail that could be the start of a marker.
+function safeFlushLength(buf: string): { len: number; markerAt: number } {
+  let markerAt = -1;
+  for (const m of TOOLCALL_MARKERS) {
+    const idx = buf.indexOf(m);
+    if (idx !== -1 && (markerAt === -1 || idx < markerAt)) markerAt = idx;
+  }
+  if (markerAt !== -1) return { len: markerAt, markerAt };
+
+  // No complete marker. Hold back a suffix that might be a partial marker.
+  const maxHold = Math.min(buf.length, MAX_MARKER_LEN - 1);
+  for (let hold = maxHold; hold > 0; hold--) {
+    const tail = buf.slice(buf.length - hold);
+    if (TOOLCALL_MARKERS.some(m => m.startsWith(tail))) {
+      return { len: buf.length - hold, markerAt: -1 };
+    }
+  }
+  return { len: buf.length, markerAt: -1 };
+}
+
+// Parse leaked tool-call text into structured { name, args } calls. `args` is
+// the raw JSON-ish argument string (kept as a string to mirror the streaming
+// tool_calls accumulator).
+function parseLeakedToolCalls(text: string): Array<{ name: string; args: string }> {
+  const calls: Array<{ name: string; args: string }> = [];
+  const known = new Set(["get_stock", "web_search", "fetch_page"]);
+
+  // 1) <function=NAME>{json}</function>  and  <function=NAME>{json}
+  const reEquals = /<function=([a-zA-Z_]\w*)\s*>?\s*(\{[\s\S]*?\})\s*(?:<\/function>|<\|tool_call_end\|>)?/g;
+  // 2) <function(NAME {json})>  /  <function(NAME, {json})>
+  const reParen = /<function\(\s*([a-zA-Z_]\w*)\s*,?\s*(\{[\s\S]*?\})\s*\)?\s*>?/g;
+  // 3) {"name": "NAME", "arguments": {json}}  (functools[...] / <tool_call>...)
+  const reNamed = /\{\s*"name"\s*:\s*"([a-zA-Z_]\w*)"\s*,\s*"(?:arguments|parameters)"\s*:\s*(\{[\s\S]*?\})\s*\}/g;
+
+  for (const re of [reEquals, reParen, reNamed]) {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const name = m[1];
+      if (!known.has(name)) continue;
+      // Avoid duplicates (same name+args captured by multiple patterns).
+      const args = (m[2] ?? "{}").trim();
+      if (!calls.some(c => c.name === name && c.args === args)) {
+        calls.push({ name, args });
+      }
+    }
+  }
+  return calls;
+}
+
+// ---------------------------------------------------------------------------
 // Tool schemas
 // ---------------------------------------------------------------------------
 const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
@@ -342,19 +424,39 @@ const MATH_LATEX_RULE =
   "For multi-line derivations use one $$\\begin{aligned}...\\end{aligned}$$ block, never raw \\begin{align*}. " +
   "Never mix delimited and undelimited expressions on one equation line, and never output bare ^ or _.";
 
+// Deep domain knowledge so Kimi reasons like a sharp AI-hardware / semis
+// supply-chain analyst (in the spirit of @aleabitoreddit and @zephyr_z9):
+// follows the bottlenecks, knows the layers of the AI buildout, and maps each
+// one to the public tickers that have exposure.
+const AI_SUPPLY_CHAIN_KNOWLEDGE =
+  " AI SUPPLY-CHAIN EXPERTISE — reason from the bottleneck (HBM, packaging, optics, power gate the whole stack), not hype. Names by layer: " +
+  "Compute $NVDA $AMD, ASICs $AVGO(TPU/MTIA) $MRVL(Trainium/Maia) $INTC; " +
+  "Foundry/WFE $TSM(N3/N2+CoWoS chokepoint) $ASML $AMAT $LRCX $KLAC; " +
+  "HBM (tightest) $MU + SK Hynix/Samsung (bit-growth, 8→12→16Hi, yield); " +
+  "Packaging TSMC CoWoS/SoIC ceiling, ABF substrates, $AMKR; " +
+  "Optical $COHR $LITE $FN $AAOI (1.6T ramp, EML tight); " +
+  "Networking $AVGO $ANET $MRVL $CRDO, NVLink vs Ethernet; " +
+  "Power/cooling $VRT $ETN $GEV $MPWR (grid/transformer scarcity); " +
+  "Capex $MSFT $GOOGL $AMZN $META $ORCL $CRWV; Edge $AAPL $TSLA $PLTR. " +
+  "Trace second-order effects (a CoWoS/HBM cap ripples downstream), separate secular demand from double-ordering, flag where consensus misprices a chokepoint. " +
+  "Analysis only — never give buy/sell calls or personalized financial advice.";
+
+// Short-form analyst voice — punchy, cashtag-tagged takes like the AI-semis
+// commentators on X. Triggered when the user asks for a "take"/"tweet"/"thread".
+const SHORTFORM_ANALYSIS_STYLE =
+  " SHORT-FORM MODE — when asked for a take/tweet/thread: write like a sharp AI-hardware analyst on X. " +
+  "Cashtag every company ($NVDA, $TSM…); thesis/bottleneck in line 1; short punchy lines, not paragraphs; thread = numbered (1/ 2/ 3/); " +
+  "be quantitative (CoWoS starts, HBM bit growth, 800G→1.6T, capex $, margin deltas); opinionated angle + key risk; tweet <280 chars; no disclaimer walls; commentary not advice.";
+
 const SYSTEM_PROMPT =
-  "You are AAOS — the Autonomous AI OS — an advanced intelligence running on a custom " +
-  "32-bit OS kernel built from scratch. " +
-  "Use get_stock for US stock questions (live Yahoo Finance data). " +
-  "ALWAYS call web_search for ANY question about: current events, today's news, latest news, " +
-  "what's happening, recent announcements, this week, this month, this year, or anything that " +
-  "could have changed after your training cutoff. NEVER respond with 'I cannot retrieve news' or " +
-  "similar disclaimers — you have web_search available. Call it. When web_search returns results, " +
-  "summarize them naturally with the source publication name and date for each story. For stock news, " +
-  "distinguish confirmed price movement from possible catalysts and never claim a headline caused a move without evidence. " +
-  "Answer general/timeless knowledge from your own training without searching. " +
-  "When the user pastes a URL, call fetch_page to read it. " +
-  "Be concise, accurate, and confident. Prefer bullet points for multi-part answers." +
+  "You are AAOS, an AI analyst. " +
+  "Tools: get_stock (live quotes), web_search (news/events after cutoff), fetch_page (user URLs). " +
+  "Call web_search only for news/current events/prices — not for supply-chain knowledge you already have. " +
+  "For AI/semis/datacenter analysis answer directly from expertise below. " +
+  "Cite source + date for news. For stock moves separate price action from catalysts. " +
+  "Be concise. Bullets for multi-part answers." +
+  AI_SUPPLY_CHAIN_KNOWLEDGE +
+  SHORTFORM_ANALYSIS_STYLE +
   MATH_LATEX_RULE;
 
 // ---------------------------------------------------------------------------
@@ -605,14 +707,21 @@ export async function POST(req: NextRequest) {
     messages: { role: string; content: string }[];
     model?: string;
     mode?: "flashcards";
-    image?: string;    // base64 data URL for vision (screenshots)
-    pdfText?: string;  // extracted PDF text, injected as system context
-    pdfName?: string;  // PDF filename for citation
+    image?: string;     // legacy single-image field (still accepted)
+    images?: string[];  // new: array of base64 data URLs for multiple screenshots
+    pdfText?: string;   // extracted PDF text, injected as system context
+    pdfName?: string;   // PDF filename for citation
   };
+
+  // Merge legacy `image` and new `images[]` into a single array.
+  const allImages: string[] = [
+    ...(body.images ?? []),
+    ...(body.image && !body.images?.length ? [body.image] : []),
+  ].filter(Boolean);
 
   // Flashcard mode forces the open-weight educational model and skips tools.
   const isFlashcards = body.mode === "flashcards";
-  const hasImage = !!body.image;
+  const hasImage = allImages.length > 0;
 
   const requested = isFlashcards ? "gpt-oss-20b" : (body.model ?? "gpt-4o-mini");
   const hasPdfAttached = !!(body.pdfText && body.pdfText.trim());
@@ -629,9 +738,13 @@ export async function POST(req: NextRequest) {
     : requested === "nouscoder-14b" ? SYSTEM_PROMPT_CODING
     : (requested === "gpt-oss-20b" || hasPdfAttached) ? SYSTEM_PROMPT_EDU
     : SYSTEM_PROMPT;
-  // Cap history at 10 messages (5 exchanges) — keeps input tokens lean for fast TTFT.
+  // History window: PDF keeps 20 (needs context across pages), general Kimi
+  // gets 6 (3 exchanges — plenty for analysis follow-ups, halves prefill tokens),
+  // other models get 10.
   const hasPdfBody = !!(body.pdfText && body.pdfText.trim());
-  const rawMessages = (body.messages ?? []).slice(hasPdfBody ? -20 : -10).map(m => ({
+  const isGeneralKimi = !hasPdfBody && requested === "gpt-4o-mini";
+  const historyWindow = hasPdfBody ? -20 : isGeneralKimi ? -6 : -10;
+  const rawMessages = (body.messages ?? []).slice(historyWindow).map(m => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
@@ -662,14 +775,15 @@ export async function POST(req: NextRequest) {
     prefetchedUrlContext = parts;
   }
 
-  // If a screenshot image was attached, upgrade the last user message to a vision content array
-  if (body.image && rawMessages.length > 0) {
+  // If one or more screenshots were attached, upgrade the last user message to a
+  // vision content array that includes all images followed by the text.
+  if (allImages.length > 0 && rawMessages.length > 0) {
     const last = rawMessages[rawMessages.length - 1];
     if (last.role === "user") {
       (rawMessages[rawMessages.length - 1] as unknown as OpenAI.Chat.ChatCompletionMessageParam) = {
         role: "user",
         content: [
-          { type: "image_url", image_url: { url: body.image } },
+          ...allImages.map(img => ({ type: "image_url" as const, image_url: { url: img } })),
           ...(last.content ? [{ type: "text" as const, text: last.content }] : []),
         ],
       };
@@ -766,19 +880,27 @@ export async function POST(req: NextRequest) {
         }
 
         // ── REGULAR CHAT MODE ────────────────────────────────────────
-        // Vision mode: skip tool calls (focus on solving), trim tokens for fast streaming.
-        // 1200 is enough for ~95% of undergrad problems with concise step-by-step work.
         const hasPrefetchedResearch = shouldPrefetchNews || shouldPrefetchStocks;
         const isEdu = requested === "gpt-oss-20b";
         const isCoding = requested === "nouscoder-14b";
         const hasPdf = !!(body.pdfText && body.pdfText.trim());
-        const useTools = !hasImage && !hasPrefetchedResearch && !isCoding;
-        // PDF: 3000 tok — fast on Kimi K2/Groq, enough for full exam answers.
-        // Edu: 2000 tok — enough for 10 contest answers with brief working (~150 tok/Q).
-        // Vision: 1200 tok — screenshot solving is concise by design.
-        // General: 800 tok — keeps TTFT fast for conversational use.
-        // Coding: 1800 tok — enough for useful snippets without bogging down streaming.
-        const maxTok = hasImage ? 1200 : hasPdf ? 3000 : isEdu ? 2000 : isCoding ? 1800 : 800;
+
+        // Static supply-chain knowledge fast-path: if the query is about semis /
+        // AI hardware / supply-chain topics but NOT asking for live news or prices,
+        // skip tools entirely — Kimi already knows this from training and a tool
+        // round-trip (2–4 s) would only slow things down.
+        const LIVE_KEYWORDS = /\b(news|today|latest|recent|now|current|this week|this month|this year|price|stock|earnings|after.?hours|pre.?market|beat|miss|guidance|quarter|announce)\b/i;
+        const SUPPLYCHAIN_KEYWORDS = /\b(hbm|cowos|soic|nvlink|gddr|packaging|osat|wafer|foundry|fab|process node|n[23456]|tsmc|asml|lpcamm|transceiver|optical|pluggable|cpo|datacenter|hyperscaler|capex|accelerator|gpu|tpu|asic|inference|training|silicon|semiconductor|semis?|supply.?chain|bottleneck)\b/i;
+        const isStaticSupplyChain = SUPPLYCHAIN_KEYWORDS.test(latestUserQuery) && !LIVE_KEYWORDS.test(latestUserQuery);
+
+        // useTools: skip for images, pre-fetched research, coding, and static supply-chain queries
+        const useTools = !hasImage && !hasPrefetchedResearch && !isCoding && !isStaticSupplyChain;
+
+        // Token caps: general Kimi uses adaptive cap — short/conversational gets 800,
+        // analysis/thread requests get 1200. Other models unchanged.
+        const ANALYSIS_KEYWORDS = /\b(deep.?dive|analysis|thread|tweet|take|breakdown|explain|compare|vs\.?|versus|outlook|thesis|risk|bull|bear|thesis)\b/i;
+        const generalTok = ANALYSIS_KEYWORDS.test(latestUserQuery) ? 1200 : 800;
+        const maxTok = hasImage ? 1200 : hasPdf ? 3000 : isEdu ? 2000 : isCoding ? 1800 : generalTok;
 
         if (hasPrefetchedResearch) {
           let newsResult: Record<string, unknown> | undefined;
@@ -829,7 +951,7 @@ export async function POST(req: NextRequest) {
             const result = await streamWithFallbacks(providerChain, {
               messages,
               ...(useTools ? { tools: TOOLS } : {}),
-              temperature: hasImage ? 0.2 : 0.4,
+              temperature: hasImage ? 0.2 : isEdu ? 0.4 : 0.2,
               max_tokens: maxTok,
             });
             chunks = result.chunks;
@@ -839,15 +961,20 @@ export async function POST(req: NextRequest) {
             chunks = await mainClient.chat.completions.create({
               model: mainModel, messages,
               ...(useTools ? { tools: TOOLS } : {}),
-              temperature: hasImage ? 0.2 : 0.4,
+              temperature: hasImage ? 0.2 : isEdu ? 0.4 : 0.2,
               max_tokens: maxTok,
               stream: true,
             });
           }
 
-          let content = "";
+          let content = "";          // full visible text actually streamed to client
           let finishReason = "";
           const toolCalls: Record<number, { id: string; name: string; args: string }> = {};
+
+          // --- Leak-safe text streaming state (handles Kimi K2 tool-call leaks) ---
+          let pending = "";           // buffered text not yet streamed (may hold a partial marker)
+          let leakBuffer = "";        // raw text captured after a tool-call marker; parsed at end
+          let suppressing = false;    // once a marker is seen, stop streaming visible text
 
           for await (const chunk of chunks) {
             const delta = chunk.choices[0]?.delta;
@@ -855,8 +982,26 @@ export async function POST(req: NextRequest) {
             finishReason = chunk.choices[0]?.finish_reason ?? finishReason;
 
             if (delta.content) {
-              content += delta.content;
-              send({ type: "text", text: delta.content });
+              if (suppressing) {
+                // We're inside a leaked tool-call region — capture, never stream.
+                leakBuffer += delta.content;
+              } else {
+                pending += delta.content;
+                const { len, markerAt } = safeFlushLength(pending);
+                if (len > 0) {
+                  const out = pending.slice(0, len);
+                  content += out;
+                  send({ type: "text", text: out });
+                }
+                if (markerAt !== -1) {
+                  // Hit a leaked tool-call marker: everything from here is captured.
+                  suppressing = true;
+                  leakBuffer += pending.slice(len);
+                  pending = "";
+                } else {
+                  pending = pending.slice(len); // keep possible partial-marker tail
+                }
+              }
             }
 
             for (const tc of delta.tool_calls ?? []) {
@@ -868,8 +1013,35 @@ export async function POST(req: NextRequest) {
             }
           }
 
+          // Flush any harmless leftover (no marker materialized) to the client.
+          if (!suppressing && pending) {
+            // The held-back tail never grew into a real marker — it's just text.
+            content += pending;
+            send({ type: "text", text: pending });
+            pending = "";
+          }
+
+          // Convert leaked tool-call text into real structured calls so the
+          // search/fetch actually executes instead of leaking into the chat.
+          let hadLeakedCalls = false;
+          if (leakBuffer && useTools) {
+            const leaked = parseLeakedToolCalls(leakBuffer);
+            let nextIdx = Object.keys(toolCalls).length;
+            for (const lc of leaked) {
+              toolCalls[nextIdx] = {
+                id: `leak_${round}_${nextIdx}`,
+                name: lc.name,
+                args: lc.args,
+              };
+              nextIdx++;
+              hadLeakedCalls = true;
+            }
+          }
+
           const tcList = Object.values(toolCalls);
-          if (!tcList.length || finishReason === "stop" || !useTools) {
+          // Leaked tool calls arrive with finish_reason "stop" (the model thinks
+          // it's done), so don't let that short-circuit before we run them.
+          if (!tcList.length || !useTools || (finishReason === "stop" && !hadLeakedCalls)) {
             send({ type: "done", text: content });
             break;
           }

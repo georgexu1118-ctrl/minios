@@ -28,8 +28,8 @@ const MODELS = [
   {
     id: "gpt-4o-mini",
     label: "Kimi K2",
-    role: "General",
-    desc: "Moonshot AI · 1T-param MoE on Groq LPU · stocks, news, code, frontier reasoning",
+    role: "Analysis",
+    desc: "Moonshot AI · 1T-param MoE on Groq LPU · AI supply-chain & semis research, live markets, short-form analyst takes",
     accent: "violet",
   },
   {
@@ -59,7 +59,7 @@ function ChatPage() {
   const [sessionId] = useState(() => uuidv4());
   const [model, setModel] = useState<ModelId>(initialModel);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [pdf, setPdf] = useState<PdfAttachment | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement>(null);
@@ -87,12 +87,15 @@ function ChatPage() {
 
   const send = useCallback(async (question?: string) => {
     const q = (question ?? input).trim();
-    if ((!q && !image) || loading) return;
+    if ((!q && !images.length) || loading) return;
     setInput("");
-    const sentImage = image;
-    setImage(null);
+    const sentImages = images;
+    setImages([]);
 
-    const userMsg: Message = { id: uuidv4(), role: "user", content: q, imageUrl: sentImage ?? undefined };
+    const userMsg: Message = {
+      id: uuidv4(), role: "user", content: q,
+      imageUrls: sentImages.length ? sentImages : undefined,
+    };
     const aiId = uuidv4();
     const aiMsg: Message = { id: aiId, role: "assistant", content: "", streaming: true };
 
@@ -109,7 +112,9 @@ function ChatPage() {
           messages: history,
           session_id: sessionId,
           model,
-          image: sentImage,
+          // Send as array; backend accepts both `image` (legacy) and `images[]`
+          images: sentImages.length ? sentImages : undefined,
+          image: sentImages.length === 1 ? sentImages[0] : undefined,
           pdfText: pdf?.text,
           pdfName: pdf?.name,
         }),
@@ -155,7 +160,7 @@ function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }, [input, image, pdf, loading, messages, sessionId, model]);
+  }, [input, images, pdf, loading, messages, sessionId, model]);
 
   const isEmpty = messages.length === 0;
 
@@ -317,8 +322,8 @@ function ChatPage() {
             onChange={setInput}
             onSubmit={() => send()}
             loading={loading}
-            image={image}
-            onImageChange={setImage}
+            images={images}
+            onImagesChange={setImages}
             pdf={pdf}
             onPdfChange={setPdf}
           />

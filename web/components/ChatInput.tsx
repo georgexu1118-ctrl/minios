@@ -14,15 +14,16 @@ interface Props {
   onChange: (v: string) => void;
   onSubmit: () => void;
   loading: boolean;
-  image?: string | null;
-  onImageChange?: (img: string | null) => void;
+  /** Array of base-64 data-URLs for all attached screenshots. */
+  images?: string[];
+  onImagesChange?: (imgs: string[]) => void;
   pdf?: PdfAttachment | null;
   onPdfChange?: (pdf: PdfAttachment | null) => void;
 }
 
 export default function ChatInput({
   value, onChange, onSubmit, loading,
-  image, onImageChange,
+  images = [], onImagesChange,
   pdf, onPdfChange,
 }: Props) {
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -40,13 +41,13 @@ export default function ChatInput({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!loading && (value.trim() || image)) onSubmit();
+    if (!loading && (value.trim() || images.length)) onSubmit();
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!loading && (value.trim() || image)) onSubmit();
+      if (!loading && (value.trim() || images.length)) onSubmit();
     }
   }
 
@@ -77,18 +78,23 @@ export default function ChatInput({
     return canvas.toDataURL("image/jpeg", 0.82);
   }
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !onImageChange) return;
+  /** Append one downscaled image to the array, cap at 5 images. */
+  async function addImageFile(file: File) {
+    if (!onImagesChange) return;
+    if (images.length >= 5) return; // reasonable cap
     try {
       const shrunk = await downscale(file);
-      onImageChange(shrunk);
+      onImagesChange([...images, shrunk]);
     } catch {
-      // fallback: send raw if downscale fails
       const r = new FileReader();
-      r.onload = () => onImageChange(r.result as string);
+      r.onload = () => onImagesChange([...images, r.result as string]);
       r.readAsDataURL(file);
     }
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    for (const f of files) await addImageFile(f);
     e.target.value = "";
   }
 
@@ -132,54 +138,50 @@ export default function ChatInput({
   }
 
   // Paste a screenshot directly from the clipboard (Win+Shift+S → Ctrl+V).
-  // Walks clipboardData.items, grabs the first image, downscales it, and
-  // attaches — exactly like clicking the upload icon.
+  // All image items in the clipboard are appended (e.g. multiple Win+Shift+S
+  // captures copied one after another will each add a new thumbnail).
   async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
-    if (!onImageChange) return;
+    if (!onImagesChange) return;
     const items = e.clipboardData?.items;
     if (!items) return;
+    let intercepted = false;
     for (const item of Array.from(items)) {
       if (item.kind === "file" && item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (!file) continue;
-        e.preventDefault(); // stop the textarea from inserting binary text
-        try {
-          const shrunk = await downscale(file);
-          onImageChange(shrunk);
-        } catch {
-          const r = new FileReader();
-          r.onload = () => onImageChange(r.result as string);
-          r.readAsDataURL(file);
+        if (!intercepted) {
+          e.preventDefault(); // prevent binary text insertion only once
+          intercepted = true;
         }
-        return;
+        await addImageFile(file);
       }
     }
-    // No image in clipboard → let the textarea handle the normal text paste
+    // No image in clipboard → let the textarea handle normal text paste
   }
 
-  const canSend = !loading && (value.trim().length > 0 || !!image);
+  const canSend = !loading && (value.trim().length > 0 || images.length > 0);
 
   return (
     <div className="flex flex-col gap-2">
       {/* Attachment previews */}
-      {(image || pdf) && (
+      {(images.length > 0 || pdf) && (
         <div className="flex items-start gap-2 flex-wrap">
-          {image && (
-            <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-violet-500/40 flex-shrink-0">
+          {images.map((src, idx) => (
+            <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-violet-500/40 flex-shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image} alt="Attached screenshot" className="w-full h-full object-cover" />
-              {onImageChange && (
+              <img src={src} alt={`Screenshot ${idx + 1}`} className="w-full h-full object-cover" />
+              {onImagesChange && (
                 <button
                   type="button"
-                  onClick={() => onImageChange(null)}
+                  onClick={() => onImagesChange(images.filter((_, i) => i !== idx))}
                   className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center
                     hover:bg-black/90 transition-colors cursor-pointer"
-                  aria-label="Remove image">
+                  aria-label={`Remove screenshot ${idx + 1}`}>
                   <X size={10} className="text-white" />
                 </button>
               )}
             </div>
-          )}
+          ))}
           {pdf && (
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-900/40
               border border-emerald-500/40 text-emerald-200 text-[11px] font-mono">
@@ -213,6 +215,7 @@ export default function ChatInput({
           ref={fileRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={handleFileChange}
         />
@@ -225,16 +228,22 @@ export default function ChatInput({
         />
 
         {/* Image upload */}
-        {onImageChange && (
+        {onImagesChange && (
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            disabled={loading}
-            title="Attach screenshot"
+            disabled={loading || images.length >= 5}
+            title={images.length >= 5 ? "Max 5 screenshots" : "Attach screenshot(s)"}
             className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center
               text-violet-400/60 hover:text-violet-300 hover:bg-violet-800/40
-              disabled:opacity-40 transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed">
+              disabled:opacity-40 transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed relative">
             <ImagePlus size={16} />
+            {images.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-violet-600 text-white
+                text-[9px] font-bold flex items-center justify-center leading-none">
+                {images.length}
+              </span>
+            )}
           </button>
         )}
 
@@ -261,7 +270,7 @@ export default function ChatInput({
           onChange={e => onChange(e.target.value)}
           onKeyDown={handleKey}
           onPaste={handlePaste}
-          placeholder={image ? "Ask about this image… (or just send)" : "Ask anything… (paste a screenshot with Ctrl/⌘+V)"}
+          placeholder={images.length ? `Ask about ${images.length > 1 ? "these images" : "this image"}… (paste more with Ctrl/⌘+V)` : "Ask anything… (paste screenshots with Ctrl/⌘+V)"}
           disabled={loading}
           className="flex-1 bg-transparent resize-none outline-none text-sm
             text-violet-100 placeholder-violet-400/50 px-2 py-1.5

@@ -9,6 +9,9 @@ export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Multiple screenshots attached to a single user turn. */
+  imageUrls?: string[];
+  /** @deprecated use imageUrls */
   imageUrl?: string;
   toolCalls?: { tool: string; args: Record<string, unknown> }[];
   streaming?: boolean;
@@ -56,9 +59,35 @@ function normalizeDisplayEnvironments(text: string): string {
 }
 
 export function normalizeMath(text: string): string {
+  // ── Step 1: Rescue LaTeX mistakenly wrapped in fenced code blocks ──────────
+  // Some models emit ```\frac{...}\n$$\n``` when they meant $$\frac{...}$$.
+  // Heuristic: block has LaTeX commands but no code-language keywords.
+  text = text.replace(/```(?:[a-z]*\n)?([\s\S]*?)```/g, (match, body) => {
+    const trimmed = body.trim();
+    const hasLatex = /\\(?:frac|binom|sqrt|sum|int|prod|cdot|dots|left|right|begin|end|alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|phi|infty|partial|times|leq|geq|neq|approx|equiv|to|forall|exists|mathbb|mathrm|text|hat|bar|vec|over|choose)\b/.test(trimmed);
+    const hasCode = /(?:^|\n)\s*(?:def |function |class |import |from |const |let |var |return\b|if\s*[({\w]|for\s*[({\w]|while\s*\(|print\s*\(|console\.|#include|public |private |static |void )/m.test(trimmed);
+    if (hasLatex && !hasCode) {
+      // Strip any stray $$ delimiters that leaked into the fenced block
+      const cleaned = trimmed.replace(/^\$\$\s*/, "").replace(/\s*\$\$$/, "").trim();
+      return `\n$$\n${cleaned}\n$$\n`;
+    }
+    return match;
+  });
+
+  // ── Step 2: Fix $$ glued to surrounding prose on the same line ─────────────
+  // e.g. "…formula $$ 2. Next section" → "…formula\n$$\n2. Next section"
+  // Don't touch $$ that are already the only thing on a line.
+  // 2a. $$ in the middle of a line (text before AND after)
+  text = text.replace(/([^\n$])[ \t]*\$\$[ \t]*(?=[^\n$])/g, "$1\n$$\n");
+  // 2b. $$ at the very end of a line with text before it: "formula $$"
+  text = text.replace(/([^\n$])[ \t]*\$\$[ \t]*$/gm, "$1\n$$");
+  // 2c. $$ at the very start of a line followed by space + text: "$$ more text"
+  text = text.replace(/^[ \t]*\$\$[ \t]+([^\n$])/gm, "$$\n$1");
+
+  // ── Step 3: Original delimiter + code-fence-skipping normalization ──────────
   const codeParts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
   return codeParts.map((part, index) => {
-    if (index % 2 === 1) return part;
+    if (index % 2 === 1) return part; // inside code fence/span — leave untouched
 
     const normalizedDelimiters = part
       .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body) => `\n$$${body}$$\n`)
@@ -117,13 +146,22 @@ export default function ChatMessage({ msg, model }: { msg: Message; model?: stri
           </div>
         )}
 
-        {msg.imageUrl && (
-          <div className={`rounded-xl overflow-hidden border border-violet-500/30 mb-1 ${isUser ? "self-end" : "self-start"}`}
-            style={{ maxWidth: 260 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={msg.imageUrl} alt="Attached screenshot" className="w-full h-auto object-cover" />
-          </div>
-        )}
+        {/* Multi-image thumbnails */}
+        {(() => {
+          const imgs = msg.imageUrls?.length ? msg.imageUrls : msg.imageUrl ? [msg.imageUrl] : [];
+          if (!imgs.length) return null;
+          return (
+            <div className={`flex flex-wrap gap-2 mb-1 ${isUser ? "justify-end" : "justify-start"}`}>
+              {imgs.map((src, i) => (
+                <div key={i} className="rounded-xl overflow-hidden border border-violet-500/30 flex-shrink-0"
+                  style={{ maxWidth: 220 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={`Attached screenshot ${i + 1}`} className="w-full h-auto object-cover" />
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed glass markdown-body
           ${isUser
@@ -131,7 +169,7 @@ export default function ChatMessage({ msg, model }: { msg: Message; model?: stri
             : "rounded-tl-sm border-indigo-500/20 text-indigo-100"
           }
           ${!isUser && isNousCoder ? "code-green" : ""}
-          ${!msg.content && msg.imageUrl ? "hidden" : ""}`}>
+          ${!msg.content && (msg.imageUrl || msg.imageUrls?.length) ? "hidden" : ""}`}>
           {isUser ? (
             <>
               {msg.content}

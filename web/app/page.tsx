@@ -21,16 +21,16 @@ const FloatingAaoiTicker = dynamic(() => import("@/components/FloatingAaoiTicker
 
 const filters = [
   { label: "All Models", icon: Box, active: true },
-  { label: "Reasoning", icon: Brain },
+  { label: "Analysis", icon: Brain },
   { label: "Coding", icon: Code2 },
   { label: "Educational", icon: BookOpen },
-  { label: "Search", icon: Search },
+  { label: "Research", icon: Search },
 ];
 
 const labs = [
   {
-    title: "Reasoning Models",
-    description: "Frontier planning, research synthesis, live market questions, and deep problem solving.",
+    title: "Analysis Models",
+    description: "Institutional-grade AI supply-chain and semiconductor research — bottleneck analysis, live market intelligence, and short-form analyst takes.",
     button: "Explore Models",
     href: "/chat?model=gpt-4o-mini",
     tone: "blue",
@@ -111,7 +111,7 @@ export default function HomePage() {
                 Welcome to AAOS Research
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400 md:text-base">
-                Advanced AI models for reasoning, coding, education, live research, and document intelligence.
+                A frontier model lab for AI supply-chain analysis, software engineering, education, and live market research.
               </p>
             </div>
 
