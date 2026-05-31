@@ -273,9 +273,17 @@ function ChatPage() {
                           {m.role}
                         </span>
                       </div>
-                      <p className="text-[11px] text-violet-300/70 leading-snug">
-                        {m.desc}
-                      </p>
+                      {m.id === "gpt-oss-20b" ? (
+                        <p className="text-[11px] text-violet-300/70 leading-snug">
+                          OpenAI open weights · ~1000 tok/s · schoolwork,{" "}
+                          <span className="font-bold text-blue-300">SCREENSHOT</span>{" "}
+                          problem solving, flashcards
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-violet-300/70 leading-snug">
+                          {m.desc}
+                        </p>
+                      )}
                     </div>
                     {active && (
                       <div className={`absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse ${styles.dot}`} />
@@ -328,7 +336,8 @@ function ChatPage() {
             onPdfChange={setPdf}
           />
           <p className="text-center text-[9px] text-violet-500/30 mt-2 tracking-widest uppercase">
-            AAOS Research · Kimi K2 · GPT-OSS 20B · NousCoder 14B · Screenshots · Flashcards · Live Web
+            AAOS Research · Kimi K2 · GPT-OSS 20B · NousCoder 14B ·{" "}
+            <span className="font-bold text-blue-300">Screenshots</span> · Flashcards · Live Web
           </p>
         </div>
       </footer>

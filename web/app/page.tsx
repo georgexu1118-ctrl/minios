@@ -153,9 +153,16 @@ export default function HomePage() {
                   <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">
                     {card.title}
                   </h2>
-                  <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-400">
-                    {card.description}
-                  </p>
+                  {card.featured ? (
+                    <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-400">
+                      Step-by-step tutoring, olympiad math,{" "}
+                      <span className="font-bold text-blue-300">SCREENSHOTS</span>, PDFs, and study flashcards.
+                    </p>
+                  ) : (
+                    <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-400">
+                      {card.description}
+                    </p>
+                  )}
 
                   {card.featured && (
                     <div className="pointer-events-none absolute bottom-0 right-0">
